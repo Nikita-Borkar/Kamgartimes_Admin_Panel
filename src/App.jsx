@@ -40,6 +40,7 @@ import {
 } from './data/mockData';
 
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { restoreSession, clearSession } from './api/auth';
 
 export default function App() {
   // Theme State (Dark / Light Mode)
@@ -63,6 +64,20 @@ export default function App() {
 
   // Authentication State
   const [currentUser, setCurrentUser] = useState(null); // null = show LoginPage first
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const user = await restoreSession();
+        if (active && user) setCurrentUser(user);
+      } finally {
+        if (active) setAuthChecked(true);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   // Active Navigation Tab
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -102,6 +117,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearSession();
     setCurrentUser(null);
     setActiveTab('dashboard');
   };
@@ -267,6 +283,18 @@ export default function App() {
     setSettings(newSettings);
     showToast('Site settings updated successfully!', 'success');
   };
+
+  // Session hydration check (prevents flashing the login page on refresh)
+  if (!authChecked) {
+    return (
+      <div className="h-screen bg-slate-950 flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+          <span className="text-xs text-slate-400">Restoring your session...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Render Login Page if user is not authenticated
   if (!currentUser) {

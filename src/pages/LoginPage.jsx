@@ -5,10 +5,11 @@ import {
   Zap, Newspaper, FileText, Check
 } from 'lucide-react';
 import Logo from '../components/Logo';
+import { loginUser } from '../api/auth';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState('admin@kamgartimes.com');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('ChangeMe123!');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -18,7 +19,7 @@ export default function LoginPage({ onLoginSuccess }) {
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const [activeDemoRole, setActiveDemoRole] = useState('admin');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     
@@ -29,38 +30,20 @@ export default function LoginPage({ onLoginSuccess }) {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const user = await loginUser(email, password, rememberMe);
+      onLoginSuccess(user);
+    } catch (err) {
+      setErrorMessage(err?.message || 'Login failed. Please try again.');
       setLoading(false);
-      if (email === 'admin@kamgartimes.com' && password === 'admin123') {
-        onLoginSuccess({
-          name: 'Suresh Verma',
-          email: 'admin@kamgartimes.com',
-          role: 'Super Admin / Chief Editor',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-        });
-      } else if (email === 'editor@kamgartimes.com' && password === 'editor123') {
-        onLoginSuccess({
-          name: 'Anjali Sharma',
-          email: 'editor@kamgartimes.com',
-          role: 'Senior Digital Editor',
-          avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80'
-        });
-      } else {
-        onLoginSuccess({
-          name: email.split('@')[0],
-          email: email,
-          role: 'Admin',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
-        });
-      }
-    }, 700);
+    }
   };
 
   const handleDemoFill = (type) => {
     setActiveDemoRole(type);
     if (type === 'admin') {
       setEmail('admin@kamgartimes.com');
-      setPassword('admin123');
+      setPassword('ChangeMe123!');
     } else {
       setEmail('editor@kamgartimes.com');
       setPassword('editor123');
@@ -73,6 +56,7 @@ export default function LoginPage({ onLoginSuccess }) {
     setTimeout(() => {
       setShowForgotModal(false);
       setForgotSuccess(false);
+      setForgotEmail('');
     }, 2200);
   };
 
@@ -341,13 +325,13 @@ export default function LoginPage({ onLoginSuccess }) {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Enter your registered administrator email address. We will send a secure password reset link to your inbox.
+              Enter your registered administrator email address. Our support team will verify your account and send a secure password reset link to your inbox.
             </p>
 
             {forgotSuccess ? (
               <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs text-emerald-400 flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-                <span>Password reset link sent! Check your email inbox.</span>
+                <span>Request received! A secure reset link will be sent to your email shortly.</span>
               </div>
             ) : (
               <form onSubmit={handleForgotSubmit} className="space-y-4 pt-1">
