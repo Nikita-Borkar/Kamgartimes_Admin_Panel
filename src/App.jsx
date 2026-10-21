@@ -21,6 +21,7 @@ import SettingsPage from './pages/SettingsPage';
 import CitizenJournalismPage from './pages/CitizenJournalismPage';
 import AdInquiriesPage from './pages/AdInquiriesPage';
 import YouTubeVideosPage from './pages/YouTubeVideosPage';
+import RolesPermissionsPage from './pages/RolesPermissionsPage';
 
 // Mock Data
 import { 
@@ -29,18 +30,32 @@ import {
   INITIAL_LIVE_UPDATES,
   INITIAL_BREAKING_NEWS, 
   INITIAL_PHOTO_GALLERIES,
-  INITIAL_CATEGORIES, 
   INITIAL_REPORTERS, 
   INITIAL_EPAPERS, 
   INITIAL_POLL,
   INITIAL_HOROSCOPE,
-  INITIAL_ADS, 
   INITIAL_COMMENTS, 
   INITIAL_SETTINGS 
 } from './data/mockData';
 
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
+
+function AccessRestricted() {
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 shadow-xl flex flex-col items-center text-center gap-3">
+      <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+        <Lock className="w-5 h-5 text-red-400" />
+      </div>
+      <h3 className="text-sm font-bold text-white">Access Restricted</h3>
+      <p className="text-xs text-slate-400 max-w-sm">
+        Your account does not have the required permissions to access this module. Contact an administrator if you need access.
+      </p>
+    </div>
+  );
+}
 import { restoreSession, clearSession } from './api/auth';
+import { fetchCategories, createCategory, updateCategory, deleteCategory } from './api/categories';
+import { hasAnyPermission, hasPermission } from './utils/permissions';
 
 export default function App() {
   // Theme State (Dark / Light Mode)
@@ -79,6 +94,28 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
+  // Categories (backend-backed): navigation categories + their sections
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const data = await fetchCategories({ limit: 500 });
+      setCategories(data?.categories || []);
+    } catch {
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hasPermission(currentUser, 'category:read')) {
+      loadCategories();
+    } else {
+      setCategoriesLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
   // Active Navigation Tab
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -91,12 +128,12 @@ export default function App() {
   const [liveUpdates, setLiveUpdates] = useState(INITIAL_LIVE_UPDATES);
   const [breakingNews, setBreakingNews] = useState(INITIAL_BREAKING_NEWS);
   const [photoGalleries, setPhotoGalleries] = useState(INITIAL_PHOTO_GALLERIES);
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [reporters, setReporters] = useState(INITIAL_REPORTERS);
   const [epapers, setEpapers] = useState(INITIAL_EPAPERS);
   const [poll, setPoll] = useState(INITIAL_POLL);
   const [horoscope, setHoroscope] = useState(INITIAL_HOROSCOPE);
-  const [ads, setAds] = useState(INITIAL_ADS);
   const [comments, setComments] = useState(INITIAL_COMMENTS);
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
 
@@ -223,15 +260,45 @@ export default function App() {
     setBreakingNews(breakingNews.map(b => b.id === id ? { ...b, status: b.status === 'Active' ? 'Paused' : 'Active' } : b));
   };
 
-  // Category Handlers
-  const handleAddCategory = (newCat) => {
-    setCategories([...categories, newCat]);
-    showToast('New news category created!', 'success');
+  // Category Handlers (API-backed; return error message string or null)
+  const handleCreateCategory = async (values) => {
+    try {
+      await createCategory(values);
+      await loadCategories();
+      return null;
+    } catch (err) {
+      return err?.message || 'Failed to create category.';
+    }
   };
 
-  const handleDeleteCategory = (id) => {
-    setCategories(categories.filter(c => c.id !== id));
-    showToast('Category removed.', 'warning');
+  const handleUpdateCategory = async (id, values) => {
+    try {
+      await updateCategory(id, values);
+      await loadCategories();
+      return null;
+    } catch (err) {
+      return err?.message || 'Failed to update category.';
+    }
+  };
+
+  const handleDeactivateCategory = async (id) => {
+    try {
+      await deleteCategory(id);
+      await loadCategories();
+      return null;
+    } catch (err) {
+      return err?.message || 'Failed to deactivate category.';
+    }
+  };
+
+  const handleRestoreCategory = async (id) => {
+    try {
+      await updateCategory(id, { isActive: true });
+      await loadCategories();
+      return null;
+    } catch (err) {
+      return err?.message || 'Failed to reactivate category.';
+    }
   };
 
   // EPaper Handlers
@@ -254,17 +321,6 @@ export default function App() {
   const handleDeleteReporter = (id) => {
     setReporters(reporters.filter(r => r.id !== id));
     showToast('Staff account deleted.', 'warning');
-  };
-
-  // Ads Handlers
-  const handleAddAd = (newAd) => {
-    setAds([newAd, ...ads]);
-    showToast('New ad banner launched!', 'success');
-  };
-
-  const handleDeleteAd = (id) => {
-    setAds(ads.filter(a => a.id !== id));
-    showToast('Ad slot removed.', 'warning');
   };
 
   // Comments Handlers
@@ -351,6 +407,7 @@ export default function App() {
           isDesktopOpen={isDesktopSidebarOpen}
           toggleDesktopSidebar={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
           counts={counts}
+          user={currentUser}
         />
 
         {/* Main Content Area */}
@@ -441,11 +498,20 @@ export default function App() {
           )}
 
           {activeTab === 'categories' && (
-            <CategoryManagementPage 
-              categories={categories}
-              onAddCategory={handleAddCategory}
-              onDeleteCategory={handleDeleteCategory}
-            />
+            hasPermission(currentUser, 'category:read') ? (
+              <CategoryManagementPage 
+                categories={categories}
+                loading={categoriesLoading}
+                user={currentUser}
+                showToast={showToast}
+                onCreate={handleCreateCategory}
+                onUpdate={handleUpdateCategory}
+                onDeactivate={handleDeactivateCategory}
+                onRestore={handleRestoreCategory}
+              />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'reporters' && (
@@ -457,11 +523,11 @@ export default function App() {
           )}
 
           {activeTab === 'ads' && (
-            <AdManagementPage 
-              ads={ads}
-              onAddAd={handleAddAd}
-              onDeleteAd={handleDeleteAd}
-            />
+            hasPermission(currentUser, 'ad:read') ? (
+              <AdManagementPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'citizen-news' && (
@@ -478,6 +544,14 @@ export default function App() {
               onApproveComment={handleApproveComment}
               onDeleteComment={handleDeleteComment}
             />
+          )}
+
+          {activeTab === 'roles' && (
+            hasAnyPermission(currentUser, 'role:read', 'role:create') ? (
+              <RolesPermissionsPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'settings' && (

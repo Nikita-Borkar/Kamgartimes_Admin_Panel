@@ -2,9 +2,10 @@ import React from 'react';
 import { 
   LayoutDashboard, Newspaper, Flame, Layers, FileText, 
   Video, Users, Megaphone, MessageSquare, Settings, X, ChevronRight,
-  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft
+  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft, UserCog
 } from 'lucide-react';
 import Logo from './Logo';
+import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
 export default function Sidebar({ 
   activeTab, 
@@ -13,7 +14,8 @@ export default function Sidebar({
   setIsMobileOpen,
   isDesktopOpen = true,
   toggleDesktopSidebar,
-  counts = {}
+  counts = {},
+  user = null
 }) {
   const menuItems = [
     { 
@@ -74,11 +76,12 @@ export default function Sidebar({
       icon: HelpCircle,
       badge: null
     },
-    { 
-      id: 'ads', 
-      label: 'Ad Banners & Promo', 
+    {
+      id: 'ads',
+      label: 'Ad Banners & Promo',
       icon: Megaphone,
-      badge: null
+      badge: null,
+      visible: hasPermission(user, 'ad:read')
     },
     { 
       id: 'ad-inquiries', 
@@ -96,9 +99,10 @@ export default function Sidebar({
     },
     { 
       id: 'categories', 
-      label: 'Categories & Cities', 
+      label: 'Categories & Sections', 
       icon: Layers,
-      badge: null
+      badge: null,
+      visible: hasPermission(user, 'category:read')
     },
     { 
       id: 'reporters', 
@@ -114,12 +118,21 @@ export default function Sidebar({
       badgeColor: 'bg-blue-500'
     },
     { 
+      id: 'roles', 
+      label: 'Roles & Permissions', 
+      icon: UserCog,
+      badge: null,
+      visible: hasAnyPermission(user, 'role:read', 'role:create')
+    },
+    { 
       id: 'settings', 
       label: 'Site Settings & API', 
       icon: Settings,
       badge: null
     }
   ];
+
+  const visibleMenuItems = menuItems.filter((item) => item.visible !== false);
 
   const handleTabClick = (id) => {
     setActiveTab(id);
@@ -145,7 +158,7 @@ export default function Sidebar({
           {isDesktopOpen ? 'MAIN CONTROLS' : 'MAIN'}
         </div>
 
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           

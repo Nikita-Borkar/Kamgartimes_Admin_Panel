@@ -56,6 +56,9 @@ function parseErrorMessage(body, fallback) {
 
 export async function request(path, { method = 'GET', body, auth = true, _retry = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (isFormData) delete headers['Content-Type']; // browser sets the multipart boundary
+
   const token = getAccessToken();
   if (auth && token) headers.Authorization = `Bearer ${token}`;
 
@@ -64,7 +67,7 @@ export async function request(path, { method = 'GET', body, auth = true, _retry 
     res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
     throw new ApiError('Unable to reach the server. Please check your connection and try again.', 0);
@@ -96,4 +99,6 @@ export async function request(path, { method = 'GET', body, auth = true, _retry 
 export const api = {
   get: (path, opts) => request(path, { ...opts, method: 'GET' }),
   post: (path, body, opts) => request(path, { ...opts, method: 'POST', body }),
+  put: (path, body, opts) => request(path, { ...opts, method: 'PUT', body }),
+  del: (path, opts) => request(path, { ...opts, method: 'DELETE' }),
 };

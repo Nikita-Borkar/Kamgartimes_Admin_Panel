@@ -24,10 +24,18 @@ export default function NewsManagementPage({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
+  // Real categories from backend (flat list with parent refs)
+  const activeCategories = (categories || []).filter(c => c.isActive !== false);
+  const mainCategories = activeCategories.filter(c => !c.parent);
+  const sectionsOf = (parentId) => activeCategories.filter(c => c.parent === parentId);
+
   const filteredArticles = articles.filter(art => {
     const matchesSearch = (art.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (art.reporter || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || art.category === selectedCategory || art.categoryLabel === selectedCategory;
+    const matchesCategory = selectedCategory === 'All' ||
+                            art.category === selectedCategory ||
+                            art.categoryLabel === selectedCategory ||
+                            art.subcategory === selectedCategory;
     const matchesStatus = selectedStatus === 'All' || art.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
@@ -85,8 +93,17 @@ export default function NewsManagementPage({
             className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-red-500 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-slate-200 outline-none transition"
           >
             <option value="All">All Categories</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
+            {mainCategories.map(c => (
+              <option key={c._id} value={c.name}>{c.name}</option>
+            ))}
+            {mainCategories.map(c => (
+              sectionsOf(c._id).length > 0 && (
+                <optgroup key={`sections-${c._id}`} label={`${c.name} — Sections`}>
+                  {sectionsOf(c._id).map(s => (
+                    <option key={s._id} value={s.name}>{s.name}</option>
+                  ))}
+                </optgroup>
+              )
             ))}
           </select>
         </div>
@@ -195,6 +212,11 @@ export default function NewsManagementPage({
                           <span className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-medium block w-max">
                             {art.category}
                           </span>
+                          {art.subcategory && (
+                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded text-[10px] font-medium block w-max">
+                              ↳ {art.subcategory}
+                            </span>
+                          )}
                           {art.city && (
                             <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                               <MapPin className="w-3 h-3 text-red-500" /> {art.city}

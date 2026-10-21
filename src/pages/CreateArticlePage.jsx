@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Save, PlusCircle, Image as ImageIcon, Volume2, 
   MapPin, Flame, Star, Sparkles, Radio, CheckCircle2, Eye, Tag, Globe
@@ -11,12 +11,30 @@ export default function CreateArticlePage({
   onSave, 
   onCancel 
 }) {
+  const activeCategories = (categories || []).filter(c => c.isActive !== false);
+  const mainCategories = activeCategories.filter(c => !c.parent);
+  const sectionCategories = activeCategories.filter(c => c.parent);
+
+  const initialCategoryId = (() => {
+    if (editingArticle?.categoryId) return editingArticle.categoryId;
+    const byName = activeCategories.find(c => c.name === editingArticle?.category);
+    return byName?._id || mainCategories[0]?._id || '';
+  })();
+
+  const initialSubcategoryId = (() => {
+    if (editingArticle?.subcategoryId) return editingArticle.subcategoryId;
+    const byName = sectionCategories.find(c => c.name === editingArticle?.subcategory);
+    return byName?._id || '';
+  })();
+
   const [formData, setFormData] = useState({
     title: editingArticle?.title || '',
     subheadline: editingArticle?.subheadline || '',
     summary: editingArticle?.summary || '',
     content: editingArticle?.content || '',
-    category: editingArticle?.category || categories[0]?.name || 'कामगार टाइम्स (Labor)',
+    category: editingArticle?.category || mainCategories[0]?.name || '',
+    categoryId: initialCategoryId,
+    subcategoryId: initialSubcategoryId,
     city: editingArticle?.city || 'नागपुर',
     reporter: editingArticle?.reporter || reporters[0]?.name || 'महेंद्र शेंडे',
     status: editingArticle?.status || 'Published',
@@ -32,6 +50,33 @@ export default function CreateArticlePage({
     tags: Array.isArray(editingArticle?.tags) ? editingArticle.tags.join(', ') : (editingArticle?.tags || 'LaborWage, EPFO, GovtScheme')
   });
 
+  // Default category once real categories finish loading
+  useEffect(() => {
+    if (!formData.categoryId && mainCategories.length) {
+      setFormData(prev => ({
+        ...prev,
+        categoryId: mainCategories[0]._id,
+        category: mainCategories[0].name
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
+
+  const sectionsForCategory = activeCategories.filter(c => c.parent === formData.categoryId);
+  const selectedCategory = (categories || []).find(c => c._id === formData.categoryId);
+  const selectedSection = (categories || []).find(c => c._id === formData.subcategoryId);
+  const previewLabel = [selectedCategory?.name, selectedSection?.name].filter(Boolean).join(' › ');
+
+  const handleCategoryChange = (categoryId) => {
+    const cat = (categories || []).find(c => c._id === categoryId);
+    setFormData(prev => ({
+      ...prev,
+      categoryId,
+      category: cat?.name || '',
+      subcategoryId: ''
+    }));
+  };
+
   const handleSubmit = (e, targetStatus = null) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
@@ -43,6 +88,10 @@ export default function CreateArticlePage({
     onSave({
       ...editingArticle,
       ...formData,
+      category: selectedCategory?.name || formData.category || '',
+      categorySlug: selectedCategory?.slug || '',
+      subcategory: selectedSection?.name || '',
+      subcategorySlug: selectedSection?.slug || '',
       status: targetStatus || formData.status,
       tags: formattedTags
     });
@@ -265,16 +314,34 @@ export default function CreateArticlePage({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">News Category</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">News Category (Navigation)</label>
               <select
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                value={formData.categoryId}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-red-500 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none"
               >
-                {categories.map(c => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
+                {mainCategories.length === 0 && <option value="">No categories available</option>}
+                {mainCategories.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Section / Subcategory (optional)</label>
+              <select
+                value={formData.subcategoryId || ''}
+                onChange={(e) => setFormData({...formData, subcategoryId: e.target.value})}
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-red-500 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white outline-none"
+              >
+                <option value="">— No Section —</option>
+                {sectionsForCategory.map(c => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+              {sectionsForCategory.length === 0 && formData.categoryId && (
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">No sections under this category yet — manage them in Categories &amp; Subcategories.</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -389,7 +456,7 @@ export default function CreateArticlePage({
               <div className="relative h-32 rounded-xl overflow-hidden bg-slate-900">
                 <img src={formData.image} alt="" className="w-full h-full object-cover" />
                 <span className="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">
-                  {formData.category}
+                  {previewLabel || 'Category'}
                 </span>
               </div>
               <h4 className="text-xs font-bold text-slate-900 dark:text-white font-serif line-clamp-2 leading-snug">
