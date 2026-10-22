@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -21,8 +21,9 @@ import SettingsPage from './pages/SettingsPage';
 import CitizenJournalismPage from './pages/CitizenJournalismPage';
 import AdInquiriesPage from './pages/AdInquiriesPage';
 import YouTubeVideosPage from './pages/YouTubeVideosPage';
-import RolesPermissionsPage from './pages/RolesPermissionsPage';
-import StaticPagesPage from './pages/StaticPagesPage';
+import MediaImagesPage from './pages/MediaImagesPage';
+import NoticesPage from './pages/NoticesPage';
+import QotdPage from './pages/QotdPage';
 
 // Mock Data
 import { 
@@ -425,12 +426,28 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'notices' && (
+            hasPermission(currentUser, 'notice:read') ? (
+              <NoticesPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
+
           {activeTab === 'photos' && (
             <PhotoGalleryPage 
               photoGalleries={photoGalleries}
               onAddGallery={handleAddGallery}
               onDeleteGallery={handleDeleteGallery}
             />
+          )}
+
+          {activeTab === 'media-images' && (
+            hasPermission(currentUser, 'media:read') ? (
+              <MediaImagesPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'epaper' && (
@@ -442,11 +459,19 @@ export default function App() {
           )}
 
           {activeTab === 'reels' && (
-            <ReelsVideoPage />
+            hasPermission(currentUser, 'media:read') ? (
+              <ReelsVideoPage categories={categories} user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'youtube-videos' && (
-            <YouTubeVideosPage />
+            hasPermission(currentUser, 'media:read') ? (
+              <YouTubeVideosPage categories={categories} user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'polls' && (
@@ -518,6 +543,14 @@ export default function App() {
           {activeTab === 'static-pages' && (
             hasPermission(currentUser, 'staticPage:read') ? (
               <StaticPagesPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
+
+          {activeTab === 'qotd' && (
+            hasPermission(currentUser, 'qotd:read') ? (
+              <QotdPage user={currentUser} showToast={showToast} />
             ) : (
               <AccessRestricted />
             )

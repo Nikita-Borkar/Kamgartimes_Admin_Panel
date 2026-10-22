@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   LayoutDashboard, Newspaper, Flame, Layers, FileText, 
   Video, Users, Megaphone, MessageSquare, Settings, X, ChevronRight,
-  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft, UserCog, ScrollText
+  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft, UserCog, ScrollText,
+  Images, BellRing, Lightbulb
 } from 'lucide-react';
 import Logo from './Logo';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
@@ -46,6 +47,13 @@ export default function Sidebar({
       badgeColor: 'bg-red-500'
     },
     { 
+      id: 'notices', 
+      label: 'Notices', 
+      icon: BellRing,
+      badge: null,
+      visible: hasPermission(user, 'notice:read')
+    },
+    { 
       id: 'photos', 
       label: 'Photo Gallery Albums', 
       icon: Camera,
@@ -62,19 +70,35 @@ export default function Sidebar({
       id: 'reels', 
       label: 'Reels & Video News', 
       icon: Video,
-      badge: null
+      badge: null,
+      visible: hasPermission(user, 'media:read')
     },
     { 
       id: 'youtube-videos', 
       label: 'YouTube Full Videos', 
       icon: Youtube,
-      badge: null
+      badge: null,
+      visible: hasPermission(user, 'media:read')
+    },
+    { 
+      id: 'media-images', 
+      label: 'Media Images', 
+      icon: Images,
+      badge: null,
+      visible: hasPermission(user, 'media:read')
     },
     { 
       id: 'polls', 
       label: 'Survey Polls & Rashifal', 
       icon: HelpCircle,
       badge: null
+    },
+    { 
+      id: 'qotd', 
+      label: 'Question of the Day', 
+      icon: Lightbulb,
+      badge: null,
+      visible: hasPermission(user, 'qotd:read')
     },
     {
       id: 'ads',
