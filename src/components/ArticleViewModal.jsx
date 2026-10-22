@@ -11,10 +11,12 @@ export default function ArticleViewModal({
   onToggleStatus 
 }) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [likesCount, setLikesCount] = useState(article?.likes || 120);
+  const [likesCount, setLikesCount] = useState(article?.likes || article?.stats?.likes || 0);
   const [hasLiked, setHasLiked] = useState(false);
 
   if (!article) return null;
+
+  const isPublished = String(article.status || '').toUpperCase() === 'PUBLISHED';
 
   const handleLikeToggle = () => {
     if (hasLiked) {
@@ -45,14 +47,13 @@ export default function ArticleViewModal({
             <button
               onClick={() => onToggleStatus && onToggleStatus(article.id)}
               className={`px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
-                article.status === 'Published' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
-                article.status === 'Pending' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30' :
+                isPublished ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
                 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
               }`}
               title="Click to change publication status"
             >
-              <span className={`w-2 h-2 rounded-full ${article.status === 'Published' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              {article.status}
+              <span className={`w-2 h-2 rounded-full ${isPublished ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              {isPublished ? 'Published' : 'Draft'}
             </button>
           </div>
 
@@ -199,12 +200,15 @@ export default function ArticleViewModal({
             </div>
           )}
 
-          {/* Main Article Content Body */}
-          <div className="prose dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed space-y-4 font-serif text-slate-800 dark:text-slate-200">
-            {(article.content || 'कोई अतिरिक्त विवरण उपलब्ध नहीं है।').split('\n\n').map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
+          {/* Main Article Content Body (HTML from the rich text editor) */}
+          {article.content ? (
+            <div
+              className="prose dark:prose-invert max-w-none text-sm sm:text-base leading-relaxed font-serif text-slate-800 dark:text-slate-200 [&_img]:max-w-full [&_img]:rounded-xl [&_img]:h-auto [&_ol]:list-decimal [&_ul]:list-disc [&_ol>li]:ml-5 [&_ul>li]:ml-5 [&_blockquote]:border-l-4 [&_blockquote]:border-red-600 [&_blockquote]:pl-3 [&_blockquote]:italic [&_h1]:text-xl [&_h1]:font-black [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_a]:text-red-600 [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: article.content }}
+            />
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400 italic">कोई अतिरिक्त विवरण उपलब्ध नहीं है।</p>
+          )}
 
           {/* Tags Section */}
           {article.tags && article.tags.length > 0 && (
@@ -245,7 +249,7 @@ export default function ArticleViewModal({
             </div>
 
             <div className="text-xs text-slate-400">
-              ID: <code className="font-mono text-slate-500">{article.id}</code>
+              ID: <code className="font-mono text-slate-500">{article._id || article.id}</code>
             </div>
           </div>
 

@@ -164,40 +164,7 @@ export default function App() {
     setActiveTab('create-article');
   };
 
-  // Save Article Handler (from CreateArticlePage)
-  const handleSaveArticle = (articleObj) => {
-    const exists = articles.some(a => a.id === articleObj.id);
-    if (exists) {
-      setArticles(articles.map(a => a.id === articleObj.id ? articleObj : a));
-      showToast('Article changes saved successfully!', 'success');
-    } else {
-      setArticles([articleObj, ...articles]);
-      setStats(prev => ({
-        ...prev,
-        totalArticles: prev.totalArticles + 1,
-        todayArticles: prev.todayArticles + 1
-      }));
-      showToast('New article published successfully!', 'success');
-    }
-    setActiveTab('news');
-    setEditingArticleData(null);
-  };
-
-  const handleDeleteArticle = (id) => {
-    setArticles(articles.filter(a => a.id !== id));
-    showToast('Article deleted.', 'warning');
-  };
-
-  const handleToggleArticleStatus = (id) => {
-    setArticles(articles.map(a => {
-      if (a.id === id) {
-        const nextStatus = a.status === 'Published' ? 'Draft' : 'Published';
-        showToast(`Article status changed to ${nextStatus}.`, 'info');
-        return { ...a, status: nextStatus };
-      }
-      return a;
-    }));
-  };
+  // (Articles are saved/published by CreateArticlePage directly against the backend API)
 
   const handleApproveArticle = (id) => {
     setArticles(articles.map(a => a.id === id ? { ...a, status: 'Published' } : a));
@@ -423,12 +390,10 @@ export default function App() {
 
           {activeTab === 'news' && (
             <NewsManagementPage 
-              articles={articles}
               categories={categories}
-              reporters={reporters}
+              user={currentUser}
+              showToast={showToast}
               onOpenCreatePage={handleOpenCreatePage}
-              onDeleteArticle={handleDeleteArticle}
-              onToggleStatus={handleToggleArticleStatus}
             />
           )}
 
@@ -436,8 +401,8 @@ export default function App() {
             <CreateArticlePage 
               editingArticle={editingArticleData}
               categories={categories}
-              reporters={reporters}
-              onSave={handleSaveArticle}
+              showToast={showToast}
+              onSaved={() => { setActiveTab('news'); setEditingArticleData(null); }}
               onCancel={() => { setActiveTab('news'); setEditingArticleData(null); }}
             />
           )}
