@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   LayoutDashboard, Newspaper, Flame, Layers, FileText, 
   Video, Users, Megaphone, MessageSquare, Settings, X, ChevronRight,
-  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft, UserCog
+  Radio, Camera, HelpCircle, ShieldCheck, Briefcase, Youtube, ChevronLeft, UserCog, ScrollText
 } from 'lucide-react';
 import Logo from './Logo';
 import { hasAnyPermission, hasPermission } from '../utils/permissions';
@@ -124,11 +124,19 @@ export default function Sidebar({
       badge: null,
       visible: hasAnyPermission(user, 'role:read', 'role:create')
     },
-    { 
-      id: 'settings', 
-      label: 'Site Settings & API', 
+    {
+      id: 'static-pages',
+      label: 'Static Pages',
+      icon: ScrollText,
+      badge: null,
+      visible: hasPermission(user, 'staticPage:read')
+    },
+    {
+      id: 'settings',
+      label: 'Site Settings',
       icon: Settings,
-      badge: null
+      badge: null,
+      visible: hasPermission(user, 'setting:read')
     }
   ];
 

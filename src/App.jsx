@@ -22,6 +22,7 @@ import CitizenJournalismPage from './pages/CitizenJournalismPage';
 import AdInquiriesPage from './pages/AdInquiriesPage';
 import YouTubeVideosPage from './pages/YouTubeVideosPage';
 import RolesPermissionsPage from './pages/RolesPermissionsPage';
+import StaticPagesPage from './pages/StaticPagesPage';
 
 // Mock Data
 import { 
@@ -34,8 +35,7 @@ import {
   INITIAL_EPAPERS, 
   INITIAL_POLL,
   INITIAL_HOROSCOPE,
-  INITIAL_COMMENTS, 
-  INITIAL_SETTINGS 
+  INITIAL_COMMENTS
 } from './data/mockData';
 
 import { CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
@@ -135,7 +135,6 @@ export default function App() {
   const [poll, setPoll] = useState(INITIAL_POLL);
   const [horoscope, setHoroscope] = useState(INITIAL_HOROSCOPE);
   const [comments, setComments] = useState(INITIAL_COMMENTS);
-  const [settings, setSettings] = useState(INITIAL_SETTINGS);
 
   // Toast Alerts State
   const [toast, setToast] = useState(null);
@@ -335,10 +334,7 @@ export default function App() {
   };
 
   // Settings Handler
-  const handleSaveSettings = (newSettings) => {
-    setSettings(newSettings);
-    showToast('Site settings updated successfully!', 'success');
-  };
+  // (settings are saved by SettingsPage directly against the backend API)
 
   // Session hydration check (prevents flashing the login page on refresh)
   if (!authChecked) {
@@ -554,11 +550,20 @@ export default function App() {
             )
           )}
 
+          {activeTab === 'static-pages' && (
+            hasPermission(currentUser, 'staticPage:read') ? (
+              <StaticPagesPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
+
           {activeTab === 'settings' && (
-            <SettingsPage 
-              settings={settings}
-              onSaveSettings={handleSaveSettings}
-            />
+            hasAnyPermission(currentUser, 'setting:read', 'setting:update') ? (
+              <SettingsPage user={currentUser} showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
         </main>
