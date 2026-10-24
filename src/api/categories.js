@@ -4,8 +4,11 @@ export async function fetchCategories({ parent, isActive, page = 1, limit = 500 
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (parent !== undefined) params.set('parent', parent);
   if (isActive !== undefined) params.set('isActive', String(isActive));
-  // data = { categories, total, page, limit }
-  return api.get(`/categories?${params.toString()}`);
+  const res = await api.get(`/categories?${params.toString()}`);
+  if (Array.isArray(res)) {
+    return { categories: res, total: res.length };
+  }
+  return res || { categories: [], total: 0 };
 }
 
 export async function fetchCategoryTree() {

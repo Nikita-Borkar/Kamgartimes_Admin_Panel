@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -24,6 +24,8 @@ import YouTubeVideosPage from './pages/YouTubeVideosPage';
 import MediaImagesPage from './pages/MediaImagesPage';
 import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
+import RolesPermissionsPage from './pages/RolesPermissionsPage';
+import StaticPagesPage from './pages/StaticPagesPage';
 
 // Mock Data
 import { 
@@ -100,7 +102,8 @@ export default function App() {
     setCategoriesLoading(true);
     try {
       const data = await fetchCategories({ limit: 500 });
-      setCategories(data?.categories || []);
+      const list = Array.isArray(data) ? data : (data?.categories || []);
+      setCategories(list);
     } catch {
       setCategories([]);
     } finally {
