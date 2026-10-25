@@ -6,40 +6,19 @@ import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import NewsManagementPage from './pages/NewsManagementPage';
+import NewsTickerPage from './pages/NewsTickerPage';
+import LiveNewsPage from './pages/LiveNewsPage';
 import CreateArticlePage from './pages/CreateArticlePage';
-import LiveBlogPage from './pages/LiveBlogPage';
-import BreakingTickerPage from './pages/BreakingTickerPage';
-import PhotoGalleryPage from './pages/PhotoGalleryPage';
-import EPaperManagementPage from './pages/EPaperManagementPage';
 import ReelsVideoPage from './pages/ReelsVideoPage';
-import PollsRashifalPage from './pages/PollsRashifalPage';
 import CategoryManagementPage from './pages/CategoryManagementPage';
-import ReportersPage from './pages/ReportersPage';
 import AdManagementPage from './pages/AdManagementPage';
-import PollsCommentsPage from './pages/PollsCommentsPage';
 import SettingsPage from './pages/SettingsPage';
-import CitizenJournalismPage from './pages/CitizenJournalismPage';
-import AdInquiriesPage from './pages/AdInquiriesPage';
 import YouTubeVideosPage from './pages/YouTubeVideosPage';
 import MediaImagesPage from './pages/MediaImagesPage';
 import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
 import RolesPermissionsPage from './pages/RolesPermissionsPage';
 import StaticPagesPage from './pages/StaticPagesPage';
-
-// Mock Data
-import { 
-  INITIAL_STATS, 
-  INITIAL_ARTICLES, 
-  INITIAL_LIVE_UPDATES,
-  INITIAL_BREAKING_NEWS, 
-  INITIAL_PHOTO_GALLERIES,
-  INITIAL_REPORTERS, 
-  INITIAL_EPAPERS, 
-  INITIAL_POLL,
-  INITIAL_HOROSCOPE,
-  INITIAL_COMMENTS
-} from './data/mockData';
 
 import { CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
 
@@ -127,18 +106,8 @@ export default function App() {
   const [editingArticleData, setEditingArticleData] = useState(null);
 
   // App Data State
-  const [stats, setStats] = useState(INITIAL_STATS);
-  const [articles, setArticles] = useState(INITIAL_ARTICLES);
-  const [liveUpdates, setLiveUpdates] = useState(INITIAL_LIVE_UPDATES);
-  const [breakingNews, setBreakingNews] = useState(INITIAL_BREAKING_NEWS);
-  const [photoGalleries, setPhotoGalleries] = useState(INITIAL_PHOTO_GALLERIES);
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [reporters, setReporters] = useState(INITIAL_REPORTERS);
-  const [epapers, setEpapers] = useState(INITIAL_EPAPERS);
-  const [poll, setPoll] = useState(INITIAL_POLL);
-  const [horoscope, setHoroscope] = useState(INITIAL_HOROSCOPE);
-  const [comments, setComments] = useState(INITIAL_COMMENTS);
 
   // Toast Alerts State
   const [toast, setToast] = useState(null);
@@ -166,37 +135,6 @@ export default function App() {
   const handleOpenCreatePage = (articleToEdit = null) => {
     setEditingArticleData(articleToEdit);
     setActiveTab('create-article');
-  };
-
-  // (Articles are saved/published by CreateArticlePage directly against the backend API)
-
-  const handleApproveArticle = (id) => {
-    setArticles(articles.map(a => a.id === id ? { ...a, status: 'Published' } : a));
-    setStats(prev => ({ ...prev, pendingApprovals: Math.max(0, prev.pendingApprovals - 1) }));
-    showToast('Pending article approved and published!', 'success');
-  };
-
-  const handleRejectArticle = (id) => {
-    setArticles(articles.filter(a => a.id !== id));
-    setStats(prev => ({ ...prev, pendingApprovals: Math.max(0, prev.pendingApprovals - 1) }));
-    showToast('Pending article rejected.', 'warning');
-  };
-
-  // Live Blog Handlers
-  const handleAddLiveUpdate = (newUpdate) => {
-    setLiveUpdates([newUpdate, ...liveUpdates]);
-    showToast('Live blog update broadcasted!', 'success');
-  };
-
-  const handleDeleteLiveUpdate = (id) => {
-    setLiveUpdates(liveUpdates.filter(u => u.id !== id));
-    showToast('Live update entry removed.', 'warning');
-  };
-
-  // Photo Gallery Handlers
-  const handleAddGallery = (newGal) => {
-    setPhotoGalleries([newGal, ...photoGalleries]);
-    showToast('New photo album created!', 'success');
   };
 
   const handleDeleteGallery = (id) => {
@@ -271,28 +209,6 @@ export default function App() {
     }
   };
 
-  // EPaper Handlers
-  const handleAddEPaper = (newEp) => {
-    setEpapers([newEp, ...epapers]);
-    showToast('New e-Paper edition published!', 'success');
-  };
-
-  const handleDeleteEPaper = (id) => {
-    setEpapers(epapers.filter(e => e.id !== id));
-    showToast('e-Paper edition deleted.', 'warning');
-  };
-
-  // Reporters Handlers
-  const handleAddReporter = (newRep) => {
-    setReporters([...reporters, newRep]);
-    showToast('Staff reporter account created!', 'success');
-  };
-
-  const handleDeleteReporter = (id) => {
-    setReporters(reporters.filter(r => r.id !== id));
-    showToast('Staff account deleted.', 'warning');
-  };
-
   // Comments Handlers
   const handleApproveComment = (id) => {
     setComments(comments.map(c => c.id === id ? { ...c, status: 'Approved' } : c));
@@ -325,10 +241,7 @@ export default function App() {
   }
 
   // Calculate badge counts for sidebar
-  const counts = {
-    pendingArticles: articles.filter(a => a.status === 'Pending').length,
-    pendingComments: comments.filter(c => c.status === 'Pending').length
-  };
+  const counts = {};
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-300">
@@ -381,15 +294,16 @@ export default function App() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           
           {activeTab === 'dashboard' && (
-            <DashboardHome 
-              stats={stats}
-              articles={articles}
-              breakingNews={breakingNews}
-              onNavigate={(tab) => setActiveTab(tab)}
-              onApproveArticle={handleApproveArticle}
-              onRejectArticle={handleRejectArticle}
-              onOpenAddModal={() => handleOpenCreatePage(null)}
-            />
+            hasPermission(currentUser, 'dashboard:read') ? (
+              <DashboardHome
+                user={currentUser}
+                onNavigate={(tab) => setActiveTab(tab)}
+                onOpenAddModal={() => handleOpenCreatePage(null)}
+                showToast={showToast}
+              />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'news' && (
@@ -399,6 +313,29 @@ export default function App() {
               showToast={showToast}
               onOpenCreatePage={handleOpenCreatePage}
             />
+          )}
+
+          {activeTab === 'news-ticker' && (
+            hasPermission(currentUser, 'article:read') ? (
+              <NewsTickerPage
+                categories={categories}
+                onManageArticles={() => setActiveTab('news')}
+              />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
+
+          {activeTab === 'live-news' && (
+            hasPermission(currentUser, 'liveNews:read') ? (
+              <LiveNewsPage
+                categories={categories}
+                user={currentUser}
+                showToast={showToast}
+              />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'create-article' && (
@@ -411,23 +348,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'liveblog' && (
-            <LiveBlogPage 
-              articles={articles}
-              liveUpdates={liveUpdates}
-              onAddLiveUpdate={handleAddLiveUpdate}
-              onDeleteLiveUpdate={handleDeleteLiveUpdate}
-            />
-          )}
 
-          {activeTab === 'breaking' && (
-            <BreakingTickerPage 
-              breakingList={breakingNews}
-              onAddBreaking={handleAddBreaking}
-              onDeleteBreaking={handleDeleteBreaking}
-              onToggleBreaking={handleToggleBreaking}
-            />
-          )}
 
           {activeTab === 'notices' && (
             hasPermission(currentUser, 'notice:read') ? (
@@ -437,28 +358,12 @@ export default function App() {
             )
           )}
 
-          {activeTab === 'photos' && (
-            <PhotoGalleryPage 
-              photoGalleries={photoGalleries}
-              onAddGallery={handleAddGallery}
-              onDeleteGallery={handleDeleteGallery}
-            />
-          )}
-
           {activeTab === 'media-images' && (
             hasPermission(currentUser, 'media:read') ? (
               <MediaImagesPage user={currentUser} showToast={showToast} />
             ) : (
               <AccessRestricted />
             )
-          )}
-
-          {activeTab === 'epaper' && (
-            <EPaperManagementPage 
-              epapers={epapers}
-              onAddEPaper={handleAddEPaper}
-              onDeleteEPaper={handleDeleteEPaper}
-            />
           )}
 
           {activeTab === 'reels' && (
@@ -475,15 +380,6 @@ export default function App() {
             ) : (
               <AccessRestricted />
             )
-          )}
-
-          {activeTab === 'polls' && (
-            <PollsRashifalPage 
-              poll={poll}
-              horoscope={horoscope}
-              onUpdatePoll={handleUpdatePoll}
-              onUpdateHoroscope={handleUpdateHoroscope}
-            />
           )}
 
           {activeTab === 'categories' && (
@@ -503,36 +399,12 @@ export default function App() {
             )
           )}
 
-          {activeTab === 'reporters' && (
-            <ReportersPage 
-              reporters={reporters}
-              onAddReporter={handleAddReporter}
-              onDeleteReporter={handleDeleteReporter}
-            />
-          )}
-
           {activeTab === 'ads' && (
             hasPermission(currentUser, 'ad:read') ? (
               <AdManagementPage user={currentUser} showToast={showToast} />
             ) : (
               <AccessRestricted />
             )
-          )}
-
-          {activeTab === 'citizen-news' && (
-            <CitizenJournalismPage />
-          )}
-
-          {activeTab === 'ad-inquiries' && (
-            <AdInquiriesPage />
-          )}
-
-          {activeTab === 'comments' && (
-            <PollsCommentsPage 
-              comments={comments}
-              onApproveComment={handleApproveComment}
-              onDeleteComment={handleDeleteComment}
-            />
           )}
 
           {activeTab === 'roles' && (

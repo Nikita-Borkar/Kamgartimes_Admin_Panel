@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import {
@@ -7,24 +7,10 @@ import {
 } from 'lucide-react';
 import { createArticle, updateArticle, updateArticleStatus, uploadArticleImage } from '../api/articles';
 
-/* --------------------------- rich text config ----------------------------- */
-
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '1' }],
-    ['blockquote', 'code-block'],
-    ['link'],
-    [{ color: [] }, { background: [] }],
-    ['clean']
-  ]
-};
-
 const QUILL_FORMATS = [
   'header', 'bold', 'italic', 'underline', 'strike',
   'list', 'bullet', 'indent', 'blockquote', 'code-block',
-  'link', 'color', 'background'
+  'link', 'image', 'color', 'background'
 ];
 
 /* --------------------------- helpers -------------------------------------- */
@@ -57,6 +43,58 @@ export default function CreateArticlePage({
     if (parentId) return { categoryId: parentId, subcategoryId: catId };
     return { categoryId: catId, subcategoryId: '' };
   };
+
+  const quillRef = useRef(null);
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast?.('Please choose an image file.', 'error');
+        return;
+      }
+      try {
+        showToast?.('Uploading image...', 'success');
+        const url = await uploadArticleImage(file, {
+          title: file.name,
+          altText: file.name
+        });
+        if (!url) throw new Error('Upload did not return an image URL.');
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', url);
+          quill.setSelection(range.index + 1);
+        }
+        showToast?.('Image inserted into article.', 'success');
+      } catch (err) {
+        showToast?.(errOf(err), 'error');
+      }
+    };
+  }, [showToast]);
+
+  const quillModules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, 4, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '1' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        [{ color: [] }, { background: [] }],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    }
+  }), [imageHandler]);
 
   const initial = resolveInitial();
 
@@ -356,12 +394,14 @@ export default function CreateArticlePage({
                 [&_.ql-container]:rounded-b-xl [&_.ql-container]:border-slate-700
                 [&_.ql-editor]:min-h-[320px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-slate-800">
                 <ReactQuill
+                  ref={quillRef}
                   theme="snow"
                   value={formData.content}
-                  onChange={(v) => setFormData(prev => ({ ...prev, content: v }))}
-                  modules={QUILL_MODULES}
+                  onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
+                  modules={quillModules}
                   formats={QUILL_FORMATS}
-                  placeholder="Write the full story here — headings, paragraphs, lists, links, bold/italic..."
+                  placeholder="Start writing your news article here..."
+                  className="bg-white dark:bg-slate-900 [&_.ql-container]:min-h-[400px] [&_.ql-editor]:min-h-[400px] [&_.ql-editor]:text-slate-900 dark:[&_.ql-editor]:text-slate-100 [&_.ql-toolbar]:border-slate-200 dark:[&_.ql-toolbar]:border-slate-700 [&_.ql-container]:border-slate-200 dark:[&_.ql-container]:border-slate-700 rounded-b-2xl overflow-hidden"
                 />
               </div>
             </div>
