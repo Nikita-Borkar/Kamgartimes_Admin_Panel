@@ -19,6 +19,7 @@ import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
 import RolesPermissionsPage from './pages/RolesPermissionsPage';
 import StaticPagesPage from './pages/StaticPagesPage';
+import { createQuestion, fetchTodayQuestion } from './api/qotd';
 
 import { CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
 
@@ -143,9 +144,23 @@ export default function App() {
   };
 
   // Poll & Rashifal Handlers
-  const handleUpdatePoll = (newPoll) => {
+  const handleUpdatePoll = async (newPoll) => {
     setPoll(newPoll);
-    showToast('Opinion poll updated.', 'success');
+    try {
+      const opts = (newPoll.options || []).map(o => typeof o === 'string' ? o : o.text).filter(Boolean);
+      await createQuestion({
+        question: newPoll.question,
+        options: opts.length > 0 ? opts : ['हाँ', 'नहीं', 'कह नहीं सकते'],
+        correctAnswer: opts[0] || 'हाँ',
+        explanation: 'जनमत सर्वेक्षण में आपका मत दर्ज किया गया।',
+        category: 'जनमत सर्वेक्षण',
+        isActive: true,
+      });
+      showToast('Opinion poll saved to database & live website!', 'success');
+    } catch (e) {
+      console.error('Failed to sync poll to backend:', e);
+      showToast('Poll updated locally.', 'success');
+    }
   };
 
   const handleUpdateHoroscope = (newHoroscopes) => {
@@ -357,6 +372,7 @@ export default function App() {
               <AccessRestricted />
             )
           )}
+
 
           {activeTab === 'media-images' && (
             hasPermission(currentUser, 'media:read') ? (
