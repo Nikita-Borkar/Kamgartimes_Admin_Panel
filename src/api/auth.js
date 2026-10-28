@@ -55,6 +55,7 @@ export async function restoreSession() {
       ...cached,
       roleKey: claims.role,
       role: ROLE_LABELS[claims.role] || cached.role,
+      permissions: Array.isArray(claims.permissions) ? claims.permissions : cached.permissions,
     };
   } catch (err) {
     if (err instanceof ApiError && err.statusCode === 401) {

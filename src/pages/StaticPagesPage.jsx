@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import {
@@ -11,25 +11,14 @@ import { hasPermission } from '../utils/permissions';
 import {
   fetchStaticPages, createStaticPage, updateStaticPage, deleteStaticPage
 } from '../api/staticPages';
+import { uploadArticleImage } from '../api/articles';
 
 /* --------------------------- rich text config ----------------------------- */
-
-const QUILL_MODULES = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '1' }],
-    ['blockquote', 'code-block'],
-    ['link'],
-    [{ color: [] }, { background: [] }],
-    ['clean']
-  ]
-};
 
 const QUILL_FORMATS = [
   'header', 'bold', 'italic', 'underline', 'strike',
   'list', 'bullet', 'indent', 'blockquote', 'code-block',
-  'link', 'color', 'background'
+  'link', 'image', 'color', 'background'
 ];
 
 /* --------------------------- helpers -------------------------------------- */
@@ -73,6 +62,58 @@ export default function StaticPagesPage({ user, showToast }) {
   const canCreate = hasPermission(user, 'staticPage:create');
   const canUpdate = hasPermission(user, 'staticPage:update');
   const canDelete = hasPermission(user, 'staticPage:delete');
+
+  const quillRef = useRef(null);
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast?.('Please choose an image file.', 'error');
+        return;
+      }
+      try {
+        showToast?.('Uploading image...', 'success');
+        const url = await uploadArticleImage(file, {
+          title: file.name,
+          altText: file.name
+        });
+        if (!url) throw new Error('Upload did not return an image URL.');
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, 'image', url);
+          quill.setSelection(range.index + 1);
+        }
+        showToast?.('Image inserted into page.', 'success');
+      } catch (err) {
+        showToast?.(err?.message || 'Image upload failed.', 'error');
+      }
+    };
+  }, [showToast]);
+
+  const quillModules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, 4, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '1' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        [{ color: [] }, { background: [] }],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler
+      }
+    }
+  }), [imageHandler]);
 
   /* -------------------------------- list state ------------------------------- */
   const [pages, setPages] = useState([]);
@@ -339,14 +380,16 @@ export default function StaticPagesPage({ user, showToast }) {
                   <FileText className="w-3.5 h-3.5 text-amber-500" /> Page Content*
                 </label>
                 <div className="bg-white dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 [&_.ql-toolbar]:rounded-t-xl [&_.ql-toolbar]:border-slate-200 dark:[&_.ql-toolbar]:border-slate-700 [&_.ql-container]:rounded-b-xl [&_.ql-container]:border-slate-200 dark:[&_.ql-container]:border-slate-700 [&_.ql-editor]:min-h-[320px] [&_.ql-editor]:text-sm [&_.ql-editor]:text-slate-900 dark:[&_.ql-editor]:text-slate-100">
-                  <ReactQuill
-                    theme="snow"
-                    value={form.content}
-                    onChange={(v) => setField('content', v)}
-                    modules={QUILL_MODULES}
-                    formats={QUILL_FORMATS}
-                    placeholder="Write the page content here — headings, lists, links, bold/italic..."
-                  />
+              <ReactQuill
+                ref={quillRef}
+                theme="snow"
+                value={form.content}
+                onChange={(value) => setForm((f) => ({ ...f, content: value }))}
+                modules={quillModules}
+                formats={QUILL_FORMATS}
+                placeholder="Write page content here..."
+                className="bg-white dark:bg-slate-900 [&_.ql-container]:min-h-[420px] [&_.ql-editor]:min-h-[420px] [&_.ql-editor]:text-slate-900 dark:[&_.ql-editor]:text-slate-100 [&_.ql-toolbar]:border-slate-200 dark:[&_.ql-toolbar]:border-slate-700 [&_.ql-container]:border-slate-200 dark:[&_.ql-container]:border-slate-700 rounded-b-2xl overflow-hidden"
+              />
                 </div>
               </div>
 

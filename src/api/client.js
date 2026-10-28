@@ -1,6 +1,34 @@
 import { getAccessToken, getRefreshToken, saveAccessToken, clearSession } from './session';
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1').replace(/\/$/, '');
+function getApiBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const currentHost = window.location.hostname;
+    if (envUrl) {
+      try {
+        const url = new URL(envUrl);
+        // If envUrl points to localhost/127.0.0.1, but browser accessed via LAN IP/hostname
+        if (
+          (url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+          currentHost !== 'localhost' &&
+          currentHost !== '127.0.0.1'
+        ) {
+          url.hostname = currentHost;
+          return url.toString().replace(/\/$/, '');
+        }
+      } catch {
+        // fallback to envUrl
+      }
+      return envUrl.replace(/\/$/, '');
+    }
+    return `http://${currentHost}:5000/api/v1`;
+  }
+
+  return (envUrl || 'http://localhost:5000/api/v1').replace(/\/$/, '');
+}
+
+const BASE_URL = getApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, statusCode = 0, errors = null) {
