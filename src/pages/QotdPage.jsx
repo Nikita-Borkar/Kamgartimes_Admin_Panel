@@ -29,8 +29,8 @@ const toLocalInput = (d) => {
 };
 
 const EMPTY_FORM = {
-  question: '', options: ['', ''], correctAnswer: '', explanation: '',
-  category: '', isActive: true, startDate: '', endDate: ''
+  question: '', options: ['', ''], correctAnswer: '',
+  isActive: true
 };
 
 export default function QotdPage({ user, showToast }) {
@@ -101,11 +101,7 @@ export default function QotdPage({ user, showToast }) {
       question: q.question || '',
       options: (q.options && q.options.length ? q.options : ['', '']).map(String),
       correctAnswer: q.correctAnswer || '',
-      explanation: q.explanation || '',
-      category: q.category || '',
       isActive: q.isActive !== false,
-      startDate: toLocalInput(q.startDate),
-      endDate: toLocalInput(q.endDate)
     });
     setFormErrors({});
     setModal({ mode: 'edit', question: q });
@@ -119,7 +115,10 @@ export default function QotdPage({ user, showToast }) {
     });
   };
 
-  const addOption = () => setForm(prev => ({ ...prev, options: [...prev.options, ''] }));
+  const addOption = () => setForm(prev => {
+  if (prev.options.length >= 3) return prev;
+  return { ...prev, options: [...prev.options, ''] };
+});
 
   const removeOption = (idx) => setForm(prev => {
     if (prev.options.length <= 2) return prev;
@@ -134,15 +133,13 @@ export default function QotdPage({ user, showToast }) {
     const opts = form.options.map(o => o.trim());
     const filled = opts.filter(Boolean);
     if (filled.length > 0 && filled.length < 2) next.options = 'Provide at least 2 options.';
+    else if (filled.length > 3) next.options = 'Maximum 3 options allowed.';
     else if (filled.length !== opts.length) next.options = 'Remove or fill empty option rows.';
 
     if (!form.correctAnswer.trim()) next.correctAnswer = 'Correct answer is required.';
     else if (form.correctAnswer.trim().length > 200) next.correctAnswer = 'Correct answer must be 200 characters or fewer.';
 
-    if (form.explanation.length > 500) next.explanation = 'Explanation must be 500 characters or fewer.';
-    if (form.startDate && form.endDate && new Date(form.startDate) >= new Date(form.endDate)) {
-      next.endDate = 'End must be after start.';
-    }
+// validation removed
     setFormErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -150,15 +147,15 @@ export default function QotdPage({ user, showToast }) {
   const handleSave = async () => {
     if (saving || !validate()) return;
     setSaving(true);
+    const now = new Date();
+    const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const body = {
       question: form.question.trim(),
       options: form.options.map(o => o.trim()).filter(Boolean),
       correctAnswer: form.correctAnswer.trim(),
-      explanation: form.explanation.trim(),
-      category: form.category.trim(),
       isActive: form.isActive,
-      startDate: toIso(form.startDate),
-      endDate: toIso(form.endDate)
+      startDate: now.toISOString(),
+      endDate: twentyFourHoursLater.toISOString(),
     };
     try {
       if (modal?.mode === 'edit') {
@@ -185,11 +182,9 @@ export default function QotdPage({ user, showToast }) {
         question: q.question,
         options: (q.options || []).filter(Boolean),
         correctAnswer: q.correctAnswer,
-        explanation: q.explanation || '',
-        category: q.category || '',
         isActive: !q.isActive,
-        startDate: q.startDate ? new Date(q.startDate).toISOString() : null,
-        endDate: q.endDate ? new Date(q.endDate).toISOString() : null
+        startDate: q.startDate ? new Date(q.startDate).toISOString() : new Date().toISOString(),
+        endDate: q.endDate ? new Date(q.endDate).toISOString() : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
       showToast?.(q.isActive ? 'Question deactivated (hidden from readers).' : 'Question activated (visible on its date).', 'success');
       load();
@@ -229,7 +224,7 @@ export default function QotdPage({ user, showToast }) {
             <Lightbulb className="w-6 h-6 text-amber-500" /> Question of the Day
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Daily trivia for readers — options, correct answer, explanation and an active date window.
+            Daily trivia for readers — options and correct answer.
           </p>
         </div>
 
@@ -325,11 +320,6 @@ export default function QotdPage({ user, showToast }) {
                             : <span className={`w-1.5 h-1.5 rounded-full ${q.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />}
                           {q.isActive ? 'Active' : 'Inactive'}
                         </button>
-                        {q.category && (
-                          <span className="text-[10px] font-black px-2 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
-                            {q.category}
-                          </span>
-                        )}
                         <span className="text-[10px] text-slate-400 flex items-center gap-1">
                           <ListChecks className="w-3 h-3" /> {(q.options || []).length} options
                         </span>
@@ -354,12 +344,6 @@ export default function QotdPage({ user, showToast }) {
                               </span>
                             ))}
                           </div>
-                          {q.explanation && (
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                              <span className="font-bold text-amber-600 dark:text-amber-400">Explanation: </span>
-                              {q.explanation}
-                            </p>
-                          )}
                         </div>
                       )}
 
@@ -371,12 +355,6 @@ export default function QotdPage({ user, showToast }) {
                           {expanded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                           {expanded ? 'Hide answer' : 'Show answer & options'}
                         </button>
-                        {(q.startDate || q.endDate) && (
-                          <span className="flex items-center gap-1">
-                            <CalendarClock className="w-3 h-3" />
-                            {fmtDate(q.startDate) || 'now'} → {fmtDate(q.endDate) || 'no end'}
-                          </span>
-                        )}
                         {q.createdBy?.name && <span>by {q.createdBy.name}</span>}
                         <span>{fmtDate(q.createdAt)}</span>
                       </div>
@@ -451,7 +429,7 @@ export default function QotdPage({ user, showToast }) {
 
               {/* Options */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Options * (min 2)</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Options * (min 2, max 3)</label>
                 <div className="space-y-2">
                   {form.options.map((opt, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -478,8 +456,8 @@ export default function QotdPage({ user, showToast }) {
                   ))}
                 </div>
                 <button
-                  onClick={addOption}
-                  className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline mt-1"
+                  onClick={() => form.options.length < 3 && addOption()}
+                  className={form.options.length >= 3 ? "hidden" : "flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline mt-1"}
                 >
                   <PlusCircle className="w-3.5 h-3.5" /> Add option
                 </button>
@@ -506,34 +484,12 @@ export default function QotdPage({ user, showToast }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Explanation (shown after answering)</label>
-                <textarea
-                  rows="2"
-                  value={form.explanation}
-                  onChange={(e) => setForm({ ...form, explanation: e.target.value })}
-                  maxLength={500}
-                  className={fieldCls(formErrors.explanation)}
-                />
-                <div className="flex justify-between">
-                  {formErrors.explanation
-                    ? <p className="text-[11px] text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.explanation}</p>
-                    : <span />}
-                  <span className="text-[10px] text-slate-400">{form.explanation.length}/500</span>
-                </div>
+                {/* Explanation field removed */}
+{/* removed */}
+{/* removed */}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Category (free text)</label>
-                  <input
-                    type="text"
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    maxLength={100}
-                    placeholder="e.g. Cricket"
-                    className={fieldCls(false)}
-                  />
-                </div>
+<div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Active</label>
                   <select
@@ -546,28 +502,6 @@ export default function QotdPage({ user, showToast }) {
                   </select>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Start Date (optional)</label>
-                  <input
-                    type="datetime-local"
-                    value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                    className={fieldCls(formErrors.endDate)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">End Date (optional)</label>
-                  <input
-                    type="datetime-local"
-                    value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                    className={fieldCls(formErrors.endDate)}
-                  />
-                </div>
-              </div>
-              {formErrors.endDate && <p className="text-[11px] text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.endDate}</p>}
             </div>
 
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
