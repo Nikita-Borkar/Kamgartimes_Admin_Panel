@@ -442,6 +442,7 @@ export default function App() {
               photoGalleries={photoGalleries}
               onAddGallery={handleAddGallery}
               onDeleteGallery={handleDeleteGallery}
+              showToast={showToast}
             />
           )}
 
