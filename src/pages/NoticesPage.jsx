@@ -8,22 +8,6 @@ import { fetchNotices, createNotice, updateNotice, deleteNotice } from '../api/n
 
 const errOf = (e) => e?.message || 'Something went wrong. Please try again.';
 
-const PRIORITIES = [
-  { value: 0, label: 'Low' },
-  { value: 1, label: 'Medium' },
-  { value: 2, label: 'High' },
-  { value: 3, label: 'Urgent' }
-];
-
-const PRIORITY_STYLES = {
-  0: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  1: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
-  2: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400',
-  3: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400 animate-pulse'
-};
-
-const PRIORITY_LABELS = { 0: 'LOW', 1: 'MEDIUM', 2: 'HIGH', 3: 'URGENT' };
-
 const fmtDateTime = (d) => {
   if (!d) return null;
   try {
@@ -42,7 +26,7 @@ const toLocalInput = (d) => {
 };
 
 const EMPTY_FORM = {
-  title: '', message: '', linkUrl: '', linkText: '', priority: 1, isActive: true, startsAt: '', endsAt: ''
+  message: '', linkUrl: '', isActive: true, startsAt: '', endsAt: ''
 };
 
 export default function NoticesPage({ user, showToast }) {
@@ -73,7 +57,6 @@ export default function NoticesPage({ user, showToast }) {
       setCurrentPage(1);
     }, 400);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
   const load = useCallback(async () => {
@@ -109,11 +92,8 @@ export default function NoticesPage({ user, showToast }) {
 
   const openEdit = (notice) => {
     setForm({
-      title: notice.title || '',
       message: notice.message || '',
       linkUrl: notice.linkUrl || '',
-      linkText: notice.linkText || '',
-      priority: Number.isFinite(notice.priority) ? notice.priority : 1,
       isActive: notice.isActive !== false,
       startsAt: toLocalInput(notice.startsAt),
       endsAt: toLocalInput(notice.endsAt)
@@ -124,8 +104,6 @@ export default function NoticesPage({ user, showToast }) {
 
   const validate = () => {
     const next = {};
-    if (!form.title.trim()) next.title = 'Title is required.';
-    else if (form.title.trim().length > 200) next.title = 'Title must be 200 characters or fewer.';
     if (!form.message.trim()) next.message = 'Message is required.';
     else if (form.message.trim().length > 1000) next.message = 'Message must be 1000 characters or fewer.';
     if (form.linkUrl.trim()) {
@@ -142,11 +120,8 @@ export default function NoticesPage({ user, showToast }) {
     if (saving || !validate()) return;
     setSaving(true);
     const body = {
-      title: form.title.trim(),
       message: form.message.trim(),
       linkUrl: form.linkUrl.trim() || '',
-      linkText: form.linkText.trim() || '',
-      priority: Number(form.priority),
       isActive: form.isActive,
       startsAt: form.startsAt || '',
       endsAt: form.endsAt || ''
@@ -173,11 +148,8 @@ export default function NoticesPage({ user, showToast }) {
     setTogglingId(notice._id);
     try {
       await updateNotice(notice._id, {
-        title: notice.title,
         message: notice.message,
         linkUrl: notice.linkUrl || '',
-        linkText: notice.linkText || '',
-        priority: notice.priority ?? 1,
         isActive: !notice.isActive,
         startsAt: notice.startsAt || '',
         endsAt: notice.endsAt || ''
@@ -219,7 +191,7 @@ export default function NoticesPage({ user, showToast }) {
             <BellRing className="w-6 h-6 text-red-500" /> Notices
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Publish ticker notices across the site with priority levels and a schedule window.
+            Publish ticker notices across the site with active status and an optional schedule window.
           </p>
         </div>
 
@@ -240,7 +212,7 @@ export default function NoticesPage({ user, showToast }) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by title or message..."
+            placeholder="Search by message..."
             className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-red-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none transition"
           />
         </div>
@@ -294,15 +266,12 @@ export default function NoticesPage({ user, showToast }) {
                 key={notice._id}
                 className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center gap-3"
               >
-                {/* Priority + status */}
-                <div className="flex items-center gap-2 sm:w-40 shrink-0">
-                  <span className={`text-[10px] font-black px-2 py-1 rounded-full ${PRIORITY_STYLES[notice.priority] ?? PRIORITY_STYLES[1]}`}>
-                    {PRIORITY_LABELS[notice.priority] ?? `P${notice.priority}`}
-                  </span>
+                {/* Status toggle */}
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleToggleActive(notice)}
                     disabled={togglingId === notice._id}
-                    className={`px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 transition disabled:opacity-50 ${
+                    className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition disabled:opacity-50 ${
                       notice.isActive
                         ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                         : 'bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
@@ -311,15 +280,14 @@ export default function NoticesPage({ user, showToast }) {
                   >
                     {togglingId === notice._id
                       ? <Loader2 className="w-3 h-3 animate-spin" />
-                      : <span className={`w-1.5 h-1.5 rounded-full ${notice.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />}
+                      : <span className={`w-2 h-2 rounded-full ${notice.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />}
                     {notice.isActive ? 'Active' : 'Inactive'}
                   </button>
                 </div>
 
                 {/* Body */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">{notice.title}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{notice.message}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug">{notice.message}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[10px] text-slate-400">
                     {(notice.startsAt || notice.endsAt) && (
                       <span className="flex items-center gap-1">
@@ -329,7 +297,7 @@ export default function NoticesPage({ user, showToast }) {
                     )}
                     {notice.linkUrl && (
                       <a href={notice.linkUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-500 hover:underline">
-                        <LinkIcon className="w-3 h-3" /> {notice.linkText || 'Link'} <ExternalLink className="w-2.5 h-2.5" />
+                        <LinkIcon className="w-3 h-3" /> {notice.linkUrl} <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     )}
                     {notice.createdBy?.name && <span>by {notice.createdBy.name}</span>}
@@ -386,26 +354,10 @@ export default function NoticesPage({ user, showToast }) {
 
             <div className="p-5 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Title *</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  maxLength={200}
-                  className={fieldCls(formErrors.title)}
-                />
-                <div className="flex justify-between">
-                  {formErrors.title
-                    ? <p className="text-[11px] text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.title}</p>
-                    : <span />}
-                  <span className="text-[10px] text-slate-400">{form.title.length}/200</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Message *</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Notice Message *</label>
                 <textarea
-                  rows="3"
+                  rows="4"
+                  placeholder="Enter notice text for ticker..."
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   maxLength={1000}
@@ -433,40 +385,15 @@ export default function NoticesPage({ user, showToast }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Link Text (optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Read More"
-                  value={form.linkText}
-                  onChange={(e) => setForm({ ...form, linkText: e.target.value })}
-                  maxLength={60}
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Active Status</label>
+                <select
+                  value={form.isActive ? 'true' : 'false'}
+                  onChange={(e) => setForm({ ...form, isActive: e.target.value === 'true' })}
                   className={fieldCls(false)}
-                />
-                <p className="text-[10px] text-slate-400">Label shown on the ticker button. Defaults to “Read More” on the site.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Priority</label>
-                  <select
-                    value={String(form.priority)}
-                    onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
-                    className={fieldCls(false)}
-                  >
-                    {PRIORITIES.map((p) => <option key={p.value} value={String(p.value)}>{p.label}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Active</label>
-                  <select
-                    value={form.isActive ? 'true' : 'false'}
-                    onChange={(e) => setForm({ ...form, isActive: e.target.value === 'true' })}
-                    className={fieldCls(false)}
-                  >
-                    <option value="true">Active (shown in ticker)</option>
-                    <option value="false">Inactive (hidden)</option>
-                  </select>
-                </div>
+                >
+                  <option value="true">Active (shown in ticker)</option>
+                  <option value="false">Inactive (hidden)</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -491,7 +418,7 @@ export default function NoticesPage({ user, showToast }) {
               </div>
               {formErrors.endsAt && <p className="text-[11px] text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formErrors.endsAt}</p>}
               <p className="text-[10px] text-slate-400">
-                Leave the schedule empty for a notice that runs as long as it is Active. A notice shows in the public ticker only when Active and inside its time window.
+                Leave the schedule empty for a notice that runs continuously while Active.
               </p>
             </div>
 
@@ -525,7 +452,7 @@ export default function NoticesPage({ user, showToast }) {
             </div>
             <h4 className="text-base font-bold text-slate-900 dark:text-white">Delete this notice?</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              “{deleting.title}” will be permanently removed. If you only want to hide it temporarily, set it to Inactive instead.
+              {deleting.message ? `“${deleting.message.slice(0, 80)}${deleting.message.length > 80 ? '...' : ''}”` : 'This notice'} will be permanently removed.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
