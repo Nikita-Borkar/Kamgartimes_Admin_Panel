@@ -7,7 +7,7 @@ import {
 import Pagination from '../components/Pagination';
 import { hasPermission } from '../utils/permissions';
 import {
-  fetchAdSlots, createAdSlot, updateAdSlot, deleteAdSlot,
+  fetchAdSlots, updateAdSlot, deleteAdSlot,
   fetchAdCampaigns, createAdCampaign, updateAdCampaign, deleteAdCampaign,
   fetchAdPlacements, createAdPlacement, updateAdPlacement, deleteAdPlacement,
   fetchAdClickStats
@@ -68,7 +68,6 @@ const TABS = [
   { key: 'stats', label: 'Click Stats', icon: BarChart3 },
 ];
 
-const EMPTY_SLOT_FORM = { name: '', key: '', section: '', width: '', height: '', position: '0', maxAds: '1' };
 const EMPTY_CAMP_FORM = {
   title: '', clickUrl: '', imageAlt: '', target: '_blank',
   priority: '0', startDate: '', endDate: '', isActive: true
@@ -86,9 +85,6 @@ export default function AdManagementPage({ user, showToast }) {
   /* ---------------------------------- slots --------------------------------- */
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(true);
-  const [slotForm, setSlotForm] = useState(EMPTY_SLOT_FORM);
-  const [slotFormError, setSlotFormError] = useState('');
-  const [slotCreating, setSlotCreating] = useState(false);
   const [slotEdit, setSlotEdit] = useState(null); // { id, name, form, error, saving }
 
   /* -------------------------------- campaigns -------------------------------- */
@@ -201,34 +197,6 @@ export default function AdManagementPage({ user, showToast }) {
   const campaignOptions = campaigns.filter(c => c.isActive);
 
   /* --------------------------------- slots ----------------------------------- */
-  const handleCreateSlot = async (e) => {
-    e.preventDefault();
-    setSlotFormError('');
-    if (!slotForm.name.trim() || !slotForm.section.trim() || !slotForm.width || !slotForm.height) {
-      setSlotFormError('Name, section, width and height are required.');
-      return;
-    }
-    setSlotCreating(true);
-    try {
-      await createAdSlot({
-        name: slotForm.name.trim(),
-        key: slotForm.key.trim() || undefined,
-        section: slotForm.section.trim(),
-        size: { width: Number(slotForm.width), height: Number(slotForm.height) },
-        position: Number(slotForm.position) || 0,
-        maxAds: Number(slotForm.maxAds) || 1,
-        isActive: true
-      });
-      showToast(`Slot "${slotForm.name.trim()}" created!`, 'success');
-      setSlotForm(EMPTY_SLOT_FORM);
-      await loadSlots();
-    } catch (err) {
-      setSlotFormError(errOf(err));
-    } finally {
-      setSlotCreating(false);
-    }
-  };
-
   const openSlotEdit = (slot) => {
     setSlotEdit({
       id: slot._id,
@@ -542,93 +510,9 @@ export default function AdManagementPage({ user, showToast }) {
       {/* ================================== SLOTS ================================== */}
       {tab === 'slots' && (
         <>
-          {canCreate && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <PlusCircle className="w-4 h-4 text-amber-500" /> Add Reader-Site Ad Slot
-              </h3>
-              {slotFormError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-2.5 text-xs text-red-400">
-                  <AlertCircle className="w-4 h-4 shrink-0" /><span>{slotFormError}</span>
-                </div>
-              )}
-              <form onSubmit={handleCreateSlot} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Slot Name*</label>
-                  <input
-                    type="text" value={slotForm.name} maxLength={100}
-                    onChange={(e) => setSlotForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="e.g. Hero Leaderboard"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Key (URL slug)</label>
-                  <input
-                    type="text" value={slotForm.key}
-                    onChange={(e) => setSlotForm(f => ({ ...f, key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_') }))}
-                    placeholder="auto from name"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs font-mono text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Section*</label>
-                  <input
-                    type="text" value={slotForm.section} list="ad-slot-sections" maxLength={50}
-                    onChange={(e) => setSlotForm(f => ({ ...f, section: e.target.value }))}
-                    placeholder="e.g. hero, sidebar"
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-white outline-none"
-                  />
-                  <datalist id="ad-slot-sections">
-                    {[...new Set(slots.map(s => s.section))].map(sec => (
-                      <option key={sec} value={sec} />
-                    ))}
-                  </datalist>
-                </div>
-                <div className="sm:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Width*</label>
-                  <input
-                    type="number" min={1} max={5000} value={slotForm.width}
-                    onChange={(e) => setSlotForm(f => ({ ...f, width: e.target.value }))}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Height*</label>
-                  <input
-                    type="number" min={1} max={5000} value={slotForm.height}
-                    onChange={(e) => setSlotForm(f => ({ ...f, height: e.target.value }))}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Position</label>
-                  <input
-                    type="number" min={-100} max={100} value={slotForm.position}
-                    onChange={(e) => setSlotForm(f => ({ ...f, position: e.target.value }))}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Max Ads</label>
-                  <input
-                    type="number" min={1} max={10} value={slotForm.maxAds}
-                    onChange={(e) => setSlotForm(f => ({ ...f, maxAds: e.target.value }))}
-                    className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                  />
-                </div>
-                <div className="sm:col-span-1">
-                  <button
-                    type="submit" disabled={slotCreating}
-                    className="w-full bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 text-white font-bold text-xs py-2 rounded-xl shadow-lg flex items-center justify-center gap-1.5 transition disabled:opacity-50"
-                  >
-                    {slotCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
-                    Add
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-slate-400">
+            Reader-site ad slots are predefined and maintained by the site configuration. This list shows the available placements and their required creative sizes.
+          </div>
 
           {slotsLoading ? (
             <div className="flex items-center justify-center py-16 text-xs text-slate-400 gap-2">
@@ -636,7 +520,7 @@ export default function AdManagementPage({ user, showToast }) {
             </div>
           ) : slots.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl space-y-2">
-              <p>No ad slots found. Create one above, or load the default reader-page slots from the backend:</p>
+              <p>No predefined ad slots found. Load the default reader-site slots from the backend:</p>
               <code className="text-[11px] text-amber-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
                 node src/scripts/seedAdSlots.js
               </code>
