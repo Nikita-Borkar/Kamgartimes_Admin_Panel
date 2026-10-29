@@ -321,12 +321,16 @@ export default function App() {
           )}
 
           {activeTab === 'news' && (
-            <NewsManagementPage 
-              categories={categories}
-              user={currentUser}
-              showToast={showToast}
-              onOpenCreatePage={handleOpenCreatePage}
-            />
+            hasPermission(currentUser, 'article:read') ? (
+              <NewsManagementPage
+                categories={categories}
+                user={currentUser}
+                showToast={showToast}
+                onOpenCreatePage={handleOpenCreatePage}
+              />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
           {activeTab === 'news-ticker' && (
@@ -353,13 +357,17 @@ export default function App() {
           )}
 
           {activeTab === 'create-article' && (
-            <CreateArticlePage 
-              editingArticle={editingArticleData}
-              categories={categories}
-              showToast={showToast}
-              onSaved={() => { setActiveTab('news'); setEditingArticleData(null); }}
-              onCancel={() => { setActiveTab('news'); setEditingArticleData(null); }}
-            />
+            hasPermission(currentUser, editingArticleData ? 'article:update' : 'article:create') ? (
+              <CreateArticlePage
+                editingArticle={editingArticleData}
+                categories={categories}
+                showToast={showToast}
+                onSaved={() => { setActiveTab('news'); setEditingArticleData(null); }}
+                onCancel={() => { setActiveTab('news'); setEditingArticleData(null); }}
+              />
+            ) : (
+              <AccessRestricted />
+            )
           )}
 
 

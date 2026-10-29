@@ -44,6 +44,7 @@ export default function Sidebar({
       icon: Newspaper,
       badge: counts.pendingArticles ? `${counts.pendingArticles} New` : null,
       badgeColor: "bg-amber-500",
+      visible: hasPermission(user, "article:read"),
     },
     {
       id: "news-ticker",

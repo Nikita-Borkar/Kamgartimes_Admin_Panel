@@ -6,6 +6,7 @@ import {
 import Pagination from '../components/Pagination';
 import ArticleViewModal from '../components/ArticleViewModal';
 import { fetchArticles, deleteArticle, updateArticleStatus } from '../api/articles';
+import { hasPermission } from '../utils/permissions';
 
 const errOf = (e) => e?.message || 'Something went wrong. Please try again.';
 
@@ -24,6 +25,10 @@ export default function NewsManagementPage({
   showToast,
   onOpenCreatePage
 }) {
+  const canCreate = hasPermission(user, 'article:create');
+  const canUpdate = hasPermission(user, 'article:update');
+  const canPublish = hasPermission(user, 'article:publish');
+  const canDelete = hasPermission(user, 'article:delete');
   const [articles, setArticles] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -157,13 +162,13 @@ export default function NewsManagementPage({
           </p>
         </div>
 
-        <button
+        {canCreate && <button
           onClick={() => onOpenCreatePage(null)}
           className="bg-gradient-to-r from-red-600 via-red-700 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg shadow-red-900/20 flex items-center justify-center gap-2 transition duration-200 active:scale-95 shrink-0 cursor-pointer"
         >
           <PlusCircle className="w-5 h-5" />
           <span>+ Write New Article</span>
-        </button>
+        </button>}
       </div>
 
       {/* Filter and Search Bar */}
@@ -334,7 +339,7 @@ export default function NewsManagementPage({
                         </td>
 
                         <td className="p-3.5">
-                          <button
+                          {canPublish && <button
                             onClick={() => handleToggleStatus(art)}
                             className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition flex items-center gap-1.5 ${
                               isPublished
@@ -345,7 +350,7 @@ export default function NewsManagementPage({
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${isPublished ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}`} />
                             {isPublished ? 'Published' : 'Draft'}
-                          </button>
+                          </button>}
                         </td>
 
                         <td className="p-3.5 text-right space-x-1 whitespace-nowrap">
@@ -356,20 +361,20 @@ export default function NewsManagementPage({
                           >
                             <Eye className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                           </button>
-                          <button
+                          {canUpdate && <button
                             onClick={() => onOpenCreatePage(art)}
                             className="p-1.5 rounded-lg text-slate-500 dark:text-slate-300 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                             title="Edit Article in Editor"
                           >
                             <Edit3 className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                          </button>
-                          <button
+                          </button>}
+                          {canDelete && <button
                             onClick={() => setDeleting(art)}
                             className="p-1.5 rounded-lg text-slate-500 dark:text-slate-300 hover:text-red-600 hover:bg-red-500/10 transition"
                             title="Delete Article"
                           >
                             <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
-                          </button>
+                          </button>}
                         </td>
 
                       </tr>
