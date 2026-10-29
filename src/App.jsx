@@ -14,6 +14,7 @@ import CategoryManagementPage from './pages/CategoryManagementPage';
 import AdManagementPage from './pages/AdManagementPage';
 import SettingsPage from './pages/SettingsPage';
 import MediaImagesPage from './pages/MediaImagesPage';
+import PhotoGalleryPage from './pages/PhotoGalleryPage';
 import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
 import RolesPermissionsPage from './pages/RolesPermissionsPage';
@@ -137,10 +138,6 @@ export default function App() {
     setActiveTab('create-article');
   };
 
-  const handleDeleteGallery = (id) => {
-    setPhotoGalleries(photoGalleries.filter(g => g.id !== id));
-    showToast('Photo album removed.', 'warning');
-  };
 
   // Poll & Rashifal Handlers
   const handleUpdatePoll = async (newPoll) => {
@@ -380,6 +377,13 @@ export default function App() {
             )
           )}
 
+          {activeTab === 'photos' && (
+            hasPermission(currentUser, 'media:read') ? (
+              <PhotoGalleryPage showToast={showToast} />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
 
           {activeTab === 'media-images' && (
             hasPermission(currentUser, 'media:read') ? (

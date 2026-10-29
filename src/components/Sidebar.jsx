@@ -16,6 +16,7 @@ import {
   Megaphone,
   Rss,
   Radio,
+  Camera,
 } from "lucide-react";
 import Logo from "./Logo";
 import { hasAnyPermission, hasPermission } from "../utils/permissions";
@@ -78,6 +79,13 @@ export default function Sidebar({
       id: "media-images",
       label: "Media Images",
       icon: Images,
+      badge: null,
+      visible: hasPermission(user, "media:read"),
+    },
+    {
+      id: "photos",
+      label: "Photo Gallery Albums",
+      icon: Camera,
       badge: null,
       visible: hasPermission(user, "media:read"),
     },
