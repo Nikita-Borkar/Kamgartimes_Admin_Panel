@@ -46,3 +46,10 @@ export async function uploadArticleImage(file, { title, altText = '' } = {}) {
   const data = await api.post('/media/images', form);
   return data?.url || data?.image?.url || '';
 }
+
+export async function uploadArticlePdf(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const data = await api.post('/articles/assets/pdf', form);
+  return data?.url || '';
+}

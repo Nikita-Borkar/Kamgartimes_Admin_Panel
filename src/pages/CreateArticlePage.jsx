@@ -3,15 +3,41 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import {
   ArrowLeft, PlusCircle, Image as ImageIcon, Eye, Globe,
-  CheckCircle2, Loader2, Upload, AlertCircle, SearchCheck, User
+  CheckCircle2, Loader2, Upload, AlertCircle, SearchCheck, User, FileText
 } from 'lucide-react';
-import { createArticle, updateArticle, updateArticleStatus, uploadArticleImage } from '../api/articles';
+import { createArticle, updateArticle, updateArticleStatus, uploadArticleImage, uploadArticlePdf } from '../api/articles';
 
 const QUILL_FORMATS = [
   'header', 'bold', 'italic', 'underline', 'strike',
   'list', 'bullet', 'indent', 'blockquote', 'code-block',
-  'link', 'image', 'color', 'background'
+  'link', 'image', 'pdfViewer', 'color', 'background'
 ];
+
+const Quill = ReactQuill.Quill;
+const BlockEmbed = Quill.import('blots/block/embed');
+
+class PdfViewerBlot extends BlockEmbed {
+  static blotName = 'pdfViewer';
+  static tagName = 'iframe';
+  static className = 'ql-pdf-viewer';
+
+  static create(url) {
+    const node = super.create();
+    node.setAttribute('src', url);
+    node.setAttribute('title', 'PDF document preview');
+    node.setAttribute('loading', 'lazy');
+    node.setAttribute('width', '100%');
+    node.setAttribute('height', '640');
+    node.setAttribute('frameborder', '0');
+    return node;
+  }
+
+  static value(node) {
+    return node.getAttribute('src') || '';
+  }
+}
+
+Quill.register(PdfViewerBlot, true);
 
 /* --------------------------- helpers -------------------------------------- */
 
@@ -45,39 +71,46 @@ export default function CreateArticlePage({
   };
 
   const quillRef = useRef(null);
+  const showToastRef = useRef(showToast);
+  const pdfInputRef = useRef(null);
+  const pdfSelectionRef = useRef(null);
+  showToastRef.current = showToast;
 
   const imageHandler = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    const quill = quillRef.current?.getEditor();
+    const savedRange = quill?.getSelection() || null;
     input.click();
 
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
       if (!file.type.startsWith('image/')) {
-        showToast?.('Please choose an image file.', 'error');
+        showToastRef.current?.('Please choose an image file.', 'error');
         return;
       }
       try {
-        showToast?.('Uploading image...', 'success');
+        showToastRef.current?.('Uploading image...', 'success');
         const url = await uploadArticleImage(file, {
           title: file.name,
           altText: file.name
         });
         if (!url) throw new Error('Upload did not return an image URL.');
-        const quill = quillRef.current?.getEditor();
-        if (quill) {
-          const range = quill.getSelection(true);
-          quill.insertEmbed(range.index, 'image', url);
-          quill.setSelection(range.index + 1);
+        const editor = quillRef.current?.getEditor();
+        if (editor) {
+          const range = savedRange || editor.getSelection() || { index: Math.max(0, editor.getLength() - 1), length: 0 };
+          if (range.length) editor.deleteText(range.index, range.length, 'user');
+          editor.insertEmbed(range.index, 'image', url, 'user');
+          editor.setSelection(range.index + 1, 0, 'user');
         }
-        showToast?.('Image inserted into article.', 'success');
+        showToastRef.current?.('Image inserted into article.', 'success');
       } catch (err) {
-        showToast?.(errOf(err), 'error');
+        showToastRef.current?.(errOf(err), 'error');
       }
     };
-  }, [showToast]);
+  }, []);
 
   const quillModules = useMemo(() => ({
     toolbar: {
@@ -116,6 +149,7 @@ export default function CreateArticlePage({
 
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
@@ -158,6 +192,40 @@ export default function CreateArticlePage({
       showToast?.(errOf(err), 'error');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const openPdfPicker = () => {
+    const quill = quillRef.current?.getEditor();
+    pdfSelectionRef.current = quill?.getSelection() || null;
+    pdfInputRef.current?.click();
+  };
+
+  const handlePdfChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      showToastRef.current?.('Please choose a PDF file.', 'error');
+      return;
+    }
+
+    setUploadingPdf(true);
+    try {
+      const url = await uploadArticlePdf(file);
+      if (!url) throw new Error('PDF upload did not return a URL.');
+
+      const quill = quillRef.current?.getEditor();
+      if (!quill) throw new Error('The article editor is not available.');
+      const range = pdfSelectionRef.current || { index: Math.max(0, quill.getLength() - 1), length: 0 };
+      if (range.length) quill.deleteText(range.index, range.length, 'user');
+      quill.insertEmbed(range.index, 'pdfViewer', url, 'user');
+      quill.setSelection(range.index + 1, 0, 'user');
+      showToastRef.current?.('PDF embedded in article.', 'success');
+    } catch (err) {
+      showToastRef.current?.(errOf(err), 'error');
+    } finally {
+      setUploadingPdf(false);
     }
   };
 
@@ -385,7 +453,34 @@ export default function CreateArticlePage({
               <label className="text-sm font-bold text-slate-900 dark:text-white block">
                 Full Article Story (मुख्य समाचार का विस्तृत विवरण)*
               </label>
-              <span className="text-[11px] text-slate-400">Word Count: {wordCount} words</span>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={handlePdfChange}
+                />
+                <button
+                  type="button"
+                  onClick={imageHandler}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  title="Insert an image into the article body"
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  Insert image
+                </button>
+                <button
+                  type="button"
+                  onClick={openPdfPicker}
+                  disabled={uploadingPdf}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {uploadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                  {uploadingPdf ? 'Uploading PDF...' : 'Attach PDF'}
+                </button>
+                <span className="text-[11px] text-slate-400">Word Count: {wordCount} words</span>
+              </div>
             </div>
 
             <div className={errors.content ? 'ring-1 ring-red-500 rounded-2xl' : ''}>
