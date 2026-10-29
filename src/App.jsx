@@ -13,7 +13,6 @@ import ReelsVideoPage from './pages/ReelsVideoPage';
 import CategoryManagementPage from './pages/CategoryManagementPage';
 import AdManagementPage from './pages/AdManagementPage';
 import SettingsPage from './pages/SettingsPage';
-import YouTubeVideosPage from './pages/YouTubeVideosPage';
 import MediaImagesPage from './pages/MediaImagesPage';
 import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
@@ -385,14 +384,6 @@ export default function App() {
           {activeTab === 'reels' && (
             hasPermission(currentUser, 'media:read') ? (
               <ReelsVideoPage categories={categories} user={currentUser} showToast={showToast} />
-            ) : (
-              <AccessRestricted />
-            )
-          )}
-
-          {activeTab === 'youtube-videos' && (
-            hasPermission(currentUser, 'media:read') ? (
-              <YouTubeVideosPage categories={categories} user={currentUser} showToast={showToast} />
             ) : (
               <AccessRestricted />
             )

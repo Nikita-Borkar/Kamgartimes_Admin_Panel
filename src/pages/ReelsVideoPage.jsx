@@ -26,6 +26,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedVideoType, setSelectedVideoType] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -49,7 +50,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
     setLoadError('');
     try {
       const data = await fetchVideos({
-        videoType: 'SHORT',
+        videoType: selectedVideoType || undefined,
         status: selectedStatus || undefined,
         category: selectedCategory === 'All' ? undefined : selectedCategory,
         search: debouncedSearch.trim() || undefined,
@@ -65,7 +66,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedStatus, selectedCategory, debouncedSearch, currentPage, itemsPerPage]);
+  }, [selectedStatus, selectedCategory, selectedVideoType, debouncedSearch, currentPage, itemsPerPage]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -78,7 +79,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
   const handleToggleStatus = async (video) => {
     try {
       await updateVideo(video._id, { status: video.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED' });
-      showToast?.(video.status === 'PUBLISHED' ? 'Short moved back to draft.' : 'Short published & live.', 'success');
+      showToast?.(video.status === 'PUBLISHED' ? 'Video moved back to draft.' : 'Video published & live.', 'success');
       load();
     } catch (err) {
       showToast?.(errOf(err), 'error');
@@ -90,7 +91,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
     setDeleteBusy(true);
     try {
       await deleteVideo(deleting._id);
-      showToast?.('Short removed.', 'warning');
+      showToast?.('Video removed.', 'warning');
       setDeleting(null);
       load();
     } catch (err) {
@@ -107,10 +108,10 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 sm:p-6 rounded-3xl shadow-sm dark:shadow-xl transition-colors duration-300">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-            <Video className="w-6 h-6 text-red-500" /> Short Videos &amp; News Reels Manager
+            <Video className="w-6 h-6 text-red-500" /> Reels &amp; Videos Manager
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Manage vertical YouTube Shorts and reels — paste a Shorts link, pick a category and publish.
+            Manage YouTube Shorts, reels, and full-length videos together. Choose the format when adding a video.
           </p>
         </div>
 
@@ -119,19 +120,19 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
           className="bg-gradient-to-r from-red-600 via-red-700 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-2xl shadow-lg shadow-red-900/20 flex items-center justify-center gap-2 transition duration-200 active:scale-95 shrink-0 cursor-pointer"
         >
           <PlusCircle className="w-5 h-5" />
-          <span>+ Add Short</span>
+          <span>+ Add Video</span>
         </button>
       </div>
 
       {/* Filters */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm dark:shadow-lg grid grid-cols-1 sm:grid-cols-12 gap-3 items-center transition-colors duration-300">
-        <div className="sm:col-span-6 relative">
+        <div className="sm:col-span-4 relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by reel title..."
+            placeholder="Search by video title..."
             className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-red-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none transition"
           />
         </div>
@@ -156,6 +157,18 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
             ))}
           </select>
         </div>
+        <div className="sm:col-span-2">
+          <select
+            value={selectedVideoType}
+            onChange={(e) => { setSelectedVideoType(e.target.value); setCurrentPage(1); }}
+            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 focus:border-red-500 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-slate-200 outline-none transition"
+            aria-label="Filter by video format"
+          >
+            <option value="">All Formats</option>
+            <option value="SHORT">Reels &amp; Shorts</option>
+            <option value="VIDEO">Full Videos</option>
+          </select>
+        </div>
         <div className="sm:col-span-3">
           <select
             value={selectedStatus}
@@ -169,10 +182,10 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
         </div>
       </div>
 
-      {/* Shorts Grid */}
+      {/* Reels & Videos Grid */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl space-y-4 transition-colors duration-300">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span>Total Shorts: <strong className="text-slate-900 dark:text-white">{total}</strong></span>
+          <span>Total videos: <strong className="text-slate-900 dark:text-white">{total}</strong></span>
           <button
             onClick={load}
             disabled={loading}
@@ -196,18 +209,18 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
           </div>
         ) : videos.length === 0 && !loadError ? (
           <div className="py-16 text-center text-xs text-slate-400">
-            No shorts found. Add your first YouTube Short to get started.
+            No videos found for these filters. Add a reel, Short, or full video to get started.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             {videos.map((video, idx) => (
               <div
                 key={video._id}
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-lg hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col"
+                className={`bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-lg hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col ${video.videoType === 'VIDEO' ? 'col-span-2' : ''}`}
               >
-                {/* Vertical Thumbnail + Play */}
+                {/* Format-aware thumbnail + play */}
                 <div
-                  className="relative h-64 bg-slate-200 dark:bg-slate-900 group cursor-pointer"
+                  className={`relative ${video.videoType === 'SHORT' ? 'aspect-[9/16]' : 'aspect-video'} bg-slate-200 dark:bg-slate-900 group cursor-pointer`}
                   onClick={() => setPlayerVideo(video)}
                 >
                   {video.thumbnailUrl ? (
@@ -223,10 +236,13 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
                   <span className="absolute top-2 left-2 bg-slate-950/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                     #{(currentPage - 1) * itemsPerPage + idx + 1}
                   </span>
+                  <span className="absolute bottom-2 left-2 bg-slate-950/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    {video.videoType === 'SHORT' ? 'REEL / SHORT' : 'FULL VIDEO'}
+                  </span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleting(video); }}
                     className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-950/70 text-white hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
-                    title="Remove Short"
+                    title="Remove video"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -297,7 +313,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
       {formModal && (
         <VideoFormModal
           video={formModal.video}
-          videoType="SHORT"
+          videoType={selectedVideoType || 'VIDEO'}
           categories={categories}
           onClose={() => setFormModal(null)}
           onSaved={() => { setFormModal(null); load(); }}
@@ -312,7 +328,7 @@ export default function ReelsVideoPage({ categories, user, showToast }) {
             <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto border border-red-500/20">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h4 className="text-base font-bold text-slate-900 dark:text-white">Remove this short?</h4>
+            <h4 className="text-base font-bold text-slate-900 dark:text-white">Remove this video?</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               “{deleting.title}” — only the record is removed; the video stays on YouTube.
             </p>
