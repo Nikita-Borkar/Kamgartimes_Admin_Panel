@@ -102,8 +102,23 @@ export default function DashboardHome({
 
   const canCreateArticle = hasPermission(user, 'article:create');
   const canReadArticles = hasPermission(user, 'article:read');
+  const canModerateComments = hasPermission(user, 'comment:moderate');
   const canUpdateArticle = hasPermission(user, 'article:update');
   const canPublishArticle = hasPermission(user, 'article:publish');
+  const canReadAds = hasPermission(user, 'ad:read');
+  const canReadLiveNews = hasPermission(user, 'liveNews:read');
+  const canReadNotices = hasPermission(user, 'notice:read');
+  const canReadPolls = hasPermission(user, 'poll:read');
+  const canReadQotd = hasPermission(user, 'qotd:read');
+  const canReadSubmissions = hasPermission(user, 'submission:read');
+  const canReadUsers = hasPermission(user, 'user:read');
+  const canReadRoles = hasPermission(user, 'role:read');
+  const canReadMedia = hasPermission(user, 'media:read');
+  const canReadGalleries = hasPermission(user, 'gallery:read');
+  const canReadEpaper = hasPermission(user, 'epaper:read');
+  const canReadCategories = hasPermission(user, 'category:read');
+  const canReadCities = hasPermission(user, 'city:read');
+  const canReadStaticPages = hasPermission(user, 'staticPage:read');
 
   const load = useCallback(
     async ({ silent = false } = {}) => {
@@ -151,13 +166,15 @@ export default function DashboardHome({
   const recentSubmissions = data?.submissions?.recent || [];
 
   const chartRows = useMemo(() => {
-    const publishedByDate = new Map(
-      (data?.series?.articlesPublishedByDay || []).map((row) => [row.date, row.count]),
-    );
-    return (data?.series?.adClicksByDay || []).map((row) => ({
-      date: row.date,
-      clicks: row.clicks,
-      articles: publishedByDate.get(row.date) || 0,
+    const publishedRows = data?.series?.articlesPublishedByDay || [];
+    const clickRows = data?.series?.adClicksByDay || [];
+    const publishedByDate = new Map(publishedRows.map((row) => [row.date, row.count]));
+    const clicksByDate = new Map(clickRows.map((row) => [row.date, row.clicks]));
+    const dates = [...new Set([...publishedRows, ...clickRows].map((row) => row.date))];
+    return dates.map((date) => ({
+      date,
+      clicks: clicksByDate.get(date) || 0,
+      articles: publishedByDate.get(date) || 0,
     }));
   }, [data]);
 
@@ -169,21 +186,19 @@ export default function DashboardHome({
 
   const moduleCards = summary
     ? [
-        {
-          label: 'Live News',
-          icon: Radio,
+        ...(canReadLiveNews ? [{
+          label: 'Live News', icon: Radio,
           value: `${formatNumber(summary.liveNews.active)} active`,
           hint: `${formatNumber(summary.liveNews.total)} total`,
-        },
-        {
-          label: 'Notices',
-          icon: BellRing,
+        }] : []),
+        ...(canReadNotices ? [{
+          label: 'Notices', icon: BellRing,
           value: `${formatNumber(summary.notices.active)} active`,
           hint: `${formatNumber(summary.notices.breaking)} breaking · ${formatNumber(summary.notices.total)} total`,
-        },
+        }] : []),
+        ...(canReadMedia ? [
         {
-          label: 'Images',
-          icon: Images,
+          label: 'Images', icon: Images,
           value: `${formatNumber(summary.library.images.published)} published`,
           hint: `${formatNumber(summary.library.images.total)} total`,
         },
@@ -193,56 +208,63 @@ export default function DashboardHome({
           value: `${formatNumber(summary.library.videos.published)} published`,
           hint: `${formatNumber(summary.library.videos.total)} total`,
         },
-        {
+        ] : []),
+        ...(canReadGalleries ? [{
           label: 'Galleries',
           icon: Layers,
           value: `${formatNumber(summary.library.galleries.published)} published`,
           hint: `${formatNumber(summary.library.galleries.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadEpaper ? [{
           label: 'E-Paper',
           icon: FileText,
           value: `${formatNumber(summary.library.epaper.active)} active`,
           hint: summary.library.epaper.latest
             ? `${summary.library.epaper.latest.title} · ${formatDate(summary.library.epaper.latest.editionDate)}`
             : 'No edition yet',
-        },
-        {
+        }] : []),
+        ...(canReadPolls ? [{
           label: 'Polls',
           icon: TrendingUp,
           value: `${formatNumber(summary.polls.active)} active`,
           hint: `${formatNumber(summary.polls.votes)} votes · ${formatNumber(summary.polls.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadQotd ? [{
           label: 'Question of the Day',
           icon: Lightbulb,
           value: `${formatNumber(summary.qotd.active)} active`,
           hint: `${formatNumber(summary.qotd.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadCategories ? [{
           label: 'Categories',
           icon: Layers,
           value: `${formatNumber(summary.library.categories.active)} active`,
           hint: `${formatNumber(summary.library.categories.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadCities ? [{
           label: 'Cities',
           icon: MapPin,
           value: `${formatNumber(summary.library.cities.active)} active`,
           hint: `${formatNumber(summary.library.cities.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadStaticPages ? [{
           label: 'Static Pages',
           icon: FileText,
           value: `${formatNumber(summary.library.staticPages.active)} active`,
           hint: `${formatNumber(summary.library.staticPages.total)} total`,
-        },
-        {
+        }] : []),
+        ...(canReadUsers ? [{
           label: 'Users',
           icon: Users,
           value: `${formatNumber(summary.users.active)} active`,
-          hint: `${formatNumber(summary.users.newInRange)} new in range · ${formatNumber(summary.roles.active)} roles`,
-        },
+          hint: `${formatNumber(summary.users.newInRange)} new in range${canReadRoles ? ` · ${formatNumber(summary.roles.active)} roles` : ''}`,
+        }] : []),
+        ...(canReadRoles && !canReadUsers ? [{
+          label: 'Roles',
+          icon: Users,
+          value: `${formatNumber(summary.roles.active)} active`,
+          hint: `${formatNumber(summary.roles.total)} total`,
+        }] : []),
       ]
     : [];
 
@@ -283,10 +305,12 @@ export default function DashboardHome({
             {user?.role ? <span className="text-sm font-semibold text-amber-200"> ({user.role})</span> : null}
           </h2>
           <p className="text-xs text-slate-200 max-w-xl">
-            {formatNumber(summary.articles.publishedToday)} article
-            {summary.articles.publishedToday === 1 ? '' : 's'} published today.{' '}
-            {formatNumber(summary.articles.draft)} draft
-            {summary.articles.draft === 1 ? '' : 's'} awaiting editorial review.
+            {canReadArticles ? <>
+              {formatNumber(summary.articles.publishedToday)} article
+              {summary.articles.publishedToday === 1 ? '' : 's'} published today.{' '}
+              {formatNumber(summary.articles.draft)} draft
+              {summary.articles.draft === 1 ? '' : 's'} awaiting editorial review.
+            </> : 'Here is your permission-based workspace overview.'}
           </p>
         </div>
 
@@ -377,58 +401,58 @@ export default function DashboardHome({
       )}
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+      {(canReadArticles || canReadAds) && <div className={`grid grid-cols-2 ${canReadArticles && canReadAds ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
+        {canReadArticles && <StatCard
           title="Published Articles"
           value={formatNumber(summary.articles.published)}
           icon={Newspaper}
           color="red"
           subtitle={`${formatNumber(summary.articles.publishedToday)} today · ${formatNumber(summary.articles.publishedInRange)} in range`}
-        />
-        <StatCard
+        />}
+        {canReadArticles && <StatCard
           title="Pending Drafts"
           value={formatNumber(summary.articles.draft)}
           icon={Clock}
           color="amber"
           subtitle="Awaiting editorial review"
-        />
-        <StatCard
+        />}
+        {canReadArticles && <StatCard
           title="Total Views"
           value={formatCompact(summary.engagement.views)}
           icon={Eye}
           color="blue"
-          subtitle={`${formatCompact(summary.engagement.likes)} likes · ${formatCompact(summary.engagement.comments)} comments`}
-        />
-        <StatCard
+          subtitle={`${formatCompact(summary.engagement.likes)} likes${canModerateComments ? ` · ${formatCompact(summary.engagement.comments)} comments` : ''}`}
+        />}
+        {canReadAds && <StatCard
           title="Ad Clicks (range)"
           value={formatNumber(summary.ads.clicksInRange)}
           icon={Megaphone}
           color="emerald"
           subtitle={`${formatCompact(summary.ads.impressionsInRange)} impressions · ${summary.ads.ctr}% CTR`}
-        />
-      </div>
+        />}
+      </div>}
 
       {/* Chart + drafts */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl transition-colors">
+        {(canReadArticles || canReadAds) && <div className={`${canReadArticles && canReadAds ? 'lg:col-span-8' : 'lg:col-span-12'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl transition-colors`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-red-600 dark:text-red-500" /> Publishing & Ad Engagement
+                <TrendingUp className="w-5 h-5 text-red-600 dark:text-red-500" /> {canReadArticles && canReadAds ? 'Publishing & Ad Engagement' : canReadArticles ? 'Article Publishing' : 'Ad Engagement'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Articles published and ad clicks per day ({range})
+                {canReadArticles && canReadAds ? 'Articles published and ad clicks' : canReadArticles ? 'Articles published' : 'Ad clicks'} per day ({range})
               </p>
             </div>
             <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-              <span className="inline-flex items-center gap-1.5">
+              {canReadAds && <span className="inline-flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-red-600 to-red-400" />
                 Ad clicks
-              </span>
-              <span className="inline-flex items-center gap-1.5">
+              </span>}
+              {canReadArticles && <span className="inline-flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-sm bg-gradient-to-t from-amber-600 to-amber-400" />
                 Published
-              </span>
+              </span>}
             </div>
           </div>
 
@@ -453,17 +477,17 @@ export default function DashboardHome({
                       className="flex-1 min-w-[12px] h-full flex flex-col items-center justify-end gap-1 group relative"
                     >
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded border border-slate-700 shadow-md whitespace-nowrap z-20 pointer-events-none">
-                        {formatShortDate(row.date)} · {row.clicks} clicks · {row.articles} published
+                        {formatShortDate(row.date)}{canReadAds ? ` · ${row.clicks} clicks` : ''}{canReadArticles ? ` · ${row.articles} published` : ''}
                       </div>
                       <div className="w-full flex items-end justify-center gap-[2px] h-48">
-                        <div
+                        {canReadAds && <div
                           style={{ height: `${row.clicks ? Math.max(clickHeight, 3) : 0}%` }}
                           className="w-1/2 rounded-t bg-gradient-to-t from-red-600 to-red-400 group-hover:brightness-125 transition"
-                        />
-                        <div
+                        />}
+                        {canReadArticles && <div
                           style={{ height: `${row.articles ? Math.max(articleHeight, 3) : 0}%` }}
                           className="w-1/2 rounded-t bg-gradient-to-t from-amber-600 to-amber-400 group-hover:brightness-125 transition"
-                        />
+                        />}
                       </div>
                       <span className="text-[9px] h-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {showLabel ? formatShortDate(row.date) : ''}
@@ -477,18 +501,17 @@ export default function DashboardHome({
 
           <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
             <span>
-              In range: <strong className="text-slate-900 dark:text-white">{formatNumber(summary.ads.clicksInRange)}</strong> ad clicks ·{' '}
-              <strong className="text-slate-900 dark:text-white">{formatNumber(summary.articles.publishedInRange)}</strong> published
+              In range:{canReadAds && <> <strong className="text-slate-900 dark:text-white">{formatNumber(summary.ads.clicksInRange)}</strong> ad clicks</>}{canReadAds && canReadArticles ? ' · ' : ''}{canReadArticles && <><strong className="text-slate-900 dark:text-white">{formatNumber(summary.articles.publishedInRange)}</strong> published</>}
             </span>
-            <span>
+            {canReadAds && <span>
               Ad campaigns: <strong className="text-slate-900 dark:text-white">{formatNumber(summary.ads.activeCampaigns)}</strong> active /{' '}
               {formatNumber(summary.ads.campaigns)}
-            </span>
+            </span>}
           </div>
-        </div>
+        </div>}
 
         {/* Draft queue */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl flex flex-col transition-colors">
+        {canReadArticles && <div className={`${canReadAds ? 'lg:col-span-4' : 'lg:col-span-12'} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl flex flex-col transition-colors`}>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-amber-500" /> Pending Approvals (
@@ -555,11 +578,11 @@ export default function DashboardHome({
               ))
             )}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Recent articles */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl transition-colors">
+      {canReadArticles && <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -653,11 +676,11 @@ export default function DashboardHome({
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
 
       {/* Ads + top articles */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
+        {canReadAds && <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Megaphone className="w-4 h-4 text-red-500" /> Ads Performance
@@ -672,7 +695,7 @@ export default function DashboardHome({
               { label: 'Campaigns', value: summary.ads.campaigns, sub: `${summary.ads.activeCampaigns} active` },
               { label: 'Slots', value: summary.ads.slots, sub: `${summary.ads.activeSlots} active` },
               { label: 'Placements', value: summary.ads.placements, sub: `${summary.ads.activePlacements} active` },
-              { label: 'Inquiries', value: summary.submissions.adInquiries.total, sub: `${summary.submissions.adInquiries.newCount} new` },
+              ...(canReadSubmissions ? [{ label: 'Inquiries', value: summary.submissions.adInquiries.total, sub: `${summary.submissions.adInquiries.newCount} new` }] : []),
             ].map((item) => (
               <div key={item.label} className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5">
                 <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{item.label}</p>
@@ -727,9 +750,9 @@ export default function DashboardHome({
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
+        {canReadArticles && <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Eye className="w-4 h-4 text-amber-500" /> Most Viewed Articles
           </h3>
@@ -757,11 +780,11 @@ export default function DashboardHome({
               ))}
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Submissions */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
+      {canReadSubmissions && <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 space-y-4 shadow-sm dark:shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -828,10 +851,10 @@ export default function DashboardHome({
             ))
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Module status grid */}
-      <div className="space-y-3">
+      {moduleCards.length > 0 && <div className="space-y-3">
         <div>
           <h3 className="text-base font-bold text-slate-900 dark:text-white">Module Overview</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">Minimal status across all admin modules</p>
@@ -858,7 +881,7 @@ export default function DashboardHome({
             );
           })}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
