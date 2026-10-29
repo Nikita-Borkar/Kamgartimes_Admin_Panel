@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Image as ImageIcon, Globe, Share2, Loader2, Save, AlertCircle,
   CheckCircle2, PlusCircle, Trash2, Wrench, Youtube, Facebook, Instagram,
-  MessageCircle, Twitter
+  MessageCircle, Twitter, Send
 } from 'lucide-react';
 import { hasPermission } from '../utils/permissions';
 import {
@@ -14,7 +14,8 @@ const PLATFORM_META = {
   facebook: { label: 'Facebook', icon: Facebook, color: 'text-blue-400' },
   instagram: { label: 'Instagram', icon: Instagram, color: 'text-pink-400' },
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-400' },
-  twitter: { label: 'X / Twitter', icon: Twitter, color: 'text-slate-300' }
+  twitter: { label: 'X / Twitter', icon: Twitter, color: 'text-slate-300' },
+  telegram: { label: 'Telegram', icon: Send, color: 'text-sky-400' }
 };
 
 const EMPTY_FORM = {
@@ -73,17 +74,16 @@ export default function SettingsPage({ user, showToast }) {
       setFormError('Site name is required.');
       return;
     }
-    const badLink = socialLinks.find(l => !l.url.trim() || !/^https?:\/\/\S+$/i.test(l.url.trim()));
+    const badLink = socialLinks.find(l => !l.platform.trim() || !l.url.trim() || !/^https?:\/\/\S+$/i.test(l.url.trim()));
     if (badLink) {
-      setFormError(`Invalid URL for ${badLink.platform} link — must start with http(s)://`);
+      setFormError(`Enter a platform name and a valid http(s):// URL for each social link.`);
       return;
     }
 
     setSaving(true);
     try {
       // Step 1: all scalar + social fields as JSON.
-      // NB: tagline/contactEmail/contactPhone/address are echoed back because
-      // the backend schema defaults them to "" and would blank anything omitted.
+      // Send the current scalar values with each settings update; blank email is allowed.
       await updateSiteSetting({
         siteName: form.siteName.trim(),
         tagline: form.tagline,
@@ -91,7 +91,7 @@ export default function SettingsPage({ user, showToast }) {
         contactPhone: form.contactPhone,
         address: form.address,
         isMaintenanceMode: form.isMaintenanceMode,
-        socialLinks: socialLinks.map(l => ({ platform: l.platform, url: l.url.trim(), icon: '' }))
+        socialLinks: socialLinks.map(l => ({ platform: l.platform.trim().toLowerCase(), url: l.url.trim(), icon: '' }))
       });
 
       // Step 2: logo in its own multipart request (only the file can travel)
@@ -117,7 +117,10 @@ export default function SettingsPage({ user, showToast }) {
     setSocialLinks(links => links.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
 
   const addLink = () =>
-    setSocialLinks(links => [...links, { platform: SOCIAL_PLATFORMS.find(p => !links.some(l => l.platform === p)) || 'youtube', url: '' }]);
+    setSocialLinks(links => [...links, {
+      platform: SOCIAL_PLATFORMS.find(p => !links.some(l => l.platform === p)) || '',
+      url: ''
+    }]);
 
   const removeLink = (idx) => setSocialLinks(links => links.filter((_, i) => i !== idx));
 
@@ -272,32 +275,41 @@ export default function SettingsPage({ user, showToast }) {
             <PlusCircle className="w-3.5 h-3.5" /> Add Link
           </button>
         </div>
+        <datalist id="social-platform-suggestions">
+          {SOCIAL_PLATFORMS.map(platform => (
+            <option key={platform} value={platform} />
+          ))}
+        </datalist>
 
         {socialLinks.length === 0 ? (
           <p className="text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl py-6 text-center">
-            No social links yet — add YouTube, Facebook, Instagram, WhatsApp or X links to show them on the reader site.
+            No social links yet. Add a suggested platform or enter a custom platform name and URL.
           </p>
         ) : (
           <div className="space-y-2">
             {socialLinks.map((link, idx) => {
-              const meta = PLATFORM_META[link.platform] || PLATFORM_META.youtube;
+              const meta = PLATFORM_META[link.platform] || {
+                label: link.platform || 'Custom platform',
+                icon: Share2,
+                color: 'text-slate-400'
+              };
               const Icon = meta.icon;
               return (
                 <div key={idx} className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center gap-3">
                   <span className={`shrink-0 ${meta.color}`}>
                     <Icon className="w-5 h-5" />
                   </span>
-                  <select
-                    value={link.platform} disabled={!canUpdate}
+                  <input
+                    type="text"
+                    list="social-platform-suggestions"
+                    maxLength={50}
+                    value={link.platform}
+                    disabled={!canUpdate}
                     onChange={(e) => updateLink(idx, { platform: e.target.value })}
+                    placeholder="Platform name"
+                    aria-label={`Platform name for social link ${idx + 1}`}
                     className="bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-2 text-xs text-white outline-none disabled:opacity-50 w-40"
-                  >
-                    {SOCIAL_PLATFORMS.map(p => (
-                      <option key={p} value={p} disabled={socialLinks.some((l, i) => i !== idx && l.platform === p)}>
-                        {PLATFORM_META[p].label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <input
                     type="url" value={link.url} disabled={!canUpdate}
                     onChange={(e) => updateLink(idx, { url: e.target.value })}
@@ -326,7 +338,7 @@ export default function SettingsPage({ user, showToast }) {
             <div>
               <p className="text-sm font-bold text-white">Maintenance Mode</p>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                When enabled, the reader site should show a maintenance notice instead of content. Public APIs keep working.
+                When enabled, the reader site shows a maintenance notice while keeping pages available. Public APIs keep working.
               </p>
             </div>
           </div>

@@ -4,7 +4,7 @@ import 'react-quill/dist/quill.snow.css';
 import {
   FileSignature, PlusCircle, Edit3, Trash2, X, AlertCircle, Loader2,
   CheckCircle2, RotateCcw, Search, ArrowLeft, Eye, EyeOff, Globe,
-  LayoutPanelTop, SearchCheck, Save, FileText, Info
+  SearchCheck, Save, FileText, Info
 } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { hasPermission } from '../utils/permissions';
@@ -42,7 +42,6 @@ const EMPTY_FORM = {
   excerpt: '',
   isActive: true,
   showInFooter: true,
-  showInHeader: false,
   sortOrder: '0',
   metaTitle: '',
   metaDescription: ''
@@ -184,7 +183,6 @@ export default function StaticPagesPage({ user, showToast }) {
       excerpt: pg.excerpt || '',
       isActive: pg.isActive !== false,
       showInFooter: !!pg.showInFooter,
-      showInHeader: !!pg.showInHeader,
       sortOrder: String(pg.sortOrder ?? 0),
       metaTitle: pg.seo?.metaTitle || '',
       metaDescription: pg.seo?.metaDescription || ''
@@ -217,7 +215,6 @@ export default function StaticPagesPage({ user, showToast }) {
       excerpt: form.excerpt.trim(),
       isActive: form.isActive,
       showInFooter: form.showInFooter,
-      showInHeader: form.showInHeader,
       sortOrder: Number(form.sortOrder) || 0,
       seo: {
         metaTitle: form.metaTitle.trim(),
@@ -418,7 +415,6 @@ export default function StaticPagesPage({ user, showToast }) {
               {[
                 { key: 'isActive', label: 'Published (live on site)', icon: form.isActive ? Eye : EyeOff, on: form.isActive, hint: 'Unpublished pages stay in this list but return 404 publicly.' },
                 { key: 'showInFooter', label: 'Show in footer menu', icon: Globe, on: form.showInFooter, hint: 'Reader site footer link list.' },
-                { key: 'showInHeader', label: 'Show in header menu', icon: LayoutPanelTop, on: form.showInHeader, hint: 'Reader site top navigation.' }
               ].map(row => {
                 const Icon = row.icon;
                 return (
@@ -562,7 +558,7 @@ export default function StaticPagesPage({ user, showToast }) {
                 <tr>
                   <th className="p-3 rounded-l-xl">Page</th>
                   <th className="p-3">Slug</th>
-                  <th className="p-3">Menus</th>
+                  <th className="p-3">Footer</th>
                   <th className="p-3">Order</th>
                   <th className="p-3">Status</th>
                   <th className="p-3">Updated</th>
@@ -582,10 +578,7 @@ export default function StaticPagesPage({ user, showToast }) {
                         {pg.showInFooter && (
                           <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 text-blue-600 dark:text-blue-400">Footer</span>
                         )}
-                        {pg.showInHeader && (
-                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400">Header</span>
-                        )}
-                        {!pg.showInFooter && !pg.showInHeader && (
+                        {!pg.showInFooter && (
                           <span className="text-[10px] text-slate-400 dark:text-slate-600">—</span>
                         )}
                       </div>

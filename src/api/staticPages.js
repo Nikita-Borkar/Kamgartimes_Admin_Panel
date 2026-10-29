@@ -4,12 +4,11 @@ import { api } from './client';
 // A page is a free-form HTML document (content is stored raw — sanitize on
 // render in any consumer). Publish flag is `isActive` (DELETE soft-deletes).
 
-export async function fetchStaticPages({ isActive, search, showInFooter, showInHeader, page = 1, limit = 20 } = {}) {
+export async function fetchStaticPages({ isActive, search, showInFooter, page = 1, limit = 20 } = {}) {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (isActive !== undefined) params.set('isActive', String(isActive));
   if (search) params.set('search', search);
   if (showInFooter !== undefined) params.set('showInFooter', String(showInFooter));
-  if (showInHeader !== undefined) params.set('showInHeader', String(showInHeader));
   // data = { pages, total, page, limit } — sorted by sortOrder then title
   return api.get(`/static-pages?${params.toString()}`);
 }
@@ -21,7 +20,7 @@ export async function fetchStaticPage(id) {
 
 export async function createStaticPage(payload) {
   // payload: { title, slug?, content, excerpt?, isActive?, showInFooter?,
-  //            showInHeader?, sortOrder?, seo? { metaTitle, metaDescription } }
+  //            sortOrder?, seo? { metaTitle, metaDescription } }
   return api.post('/static-pages', payload);
 }
 
