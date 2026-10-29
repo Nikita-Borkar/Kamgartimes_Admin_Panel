@@ -39,7 +39,7 @@ export default function NewsTickerPage({ categories = [], onManageArticles }) {
 
   const [limit, setLimit] = useState(20);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [previewAutoRefresh, setPreviewAutoRefresh] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,10 +62,10 @@ export default function NewsTickerPage({ categories = [], onManageArticles }) {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (!autoRefresh) return undefined;
+    if (!previewAutoRefresh) return undefined;
     const id = setInterval(() => { load(); }, 60 * 1000);
     return () => clearInterval(id);
-  }, [autoRefresh, load]);
+  }, [previewAutoRefresh, load]);
 
   const activeCategory = categories.find((c) => String(c._id) === String(categoryFilter));
   const tickerLoop = items.length ? [...items, ...items] : [];
@@ -102,6 +102,7 @@ export default function NewsTickerPage({ categories = [], onManageArticles }) {
         <p>
           There is no separate ticker CRUD. Publishing an article (or setting its status to <strong>PUBLISHED</strong>)
           adds it here automatically, newest first, and it drops off after 24 hours.
+          {' '}Preview auto-refresh only reloads this admin screen; the public ticker refreshes independently.
         </p>
       </div>
 
@@ -170,16 +171,17 @@ export default function NewsTickerPage({ categories = [], onManageArticles }) {
 
         <div className="sm:col-span-2">
           <button
-            onClick={() => setAutoRefresh((v) => !v)}
+            onClick={() => setPreviewAutoRefresh((enabled) => !enabled)}
             className={`w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold border transition ${
-              autoRefresh
+              previewAutoRefresh
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
                 : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
             }`}
-            title="Toggle 60-second auto refresh"
+            title="Toggle automatic refresh of this admin preview only"
+            aria-label={`Admin preview auto-refresh ${previewAutoRefresh ? 'on' : 'off'}`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            {autoRefresh ? 'Auto On' : 'Auto Off'}
+            <span className={`w-1.5 h-1.5 rounded-full ${previewAutoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+            {previewAutoRefresh ? 'Preview Auto On' : 'Preview Auto Off'}
           </button>
         </div>
 
