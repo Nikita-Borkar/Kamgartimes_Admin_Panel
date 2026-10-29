@@ -17,6 +17,7 @@ import {
   Rss,
   Radio,
   Camera,
+  MessageSquareText,
 } from "lucide-react";
 import Logo from "./Logo";
 import { hasAnyPermission, hasPermission } from "../utils/permissions";
@@ -53,6 +54,13 @@ export default function Sidebar({
       icon: Rss,
       badge: null,
       visible: hasPermission(user, "article:read"),
+    },
+    {
+      id: "comments",
+      label: "Reader Comments",
+      icon: MessageSquareText,
+      badge: null,
+      visible: hasPermission(user, "comment:moderate"),
     },
     {
       id: "live-news",

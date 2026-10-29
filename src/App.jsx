@@ -19,6 +19,7 @@ import NoticesPage from './pages/NoticesPage';
 import QotdPage from './pages/QotdPage';
 import RolesPermissionsPage from './pages/RolesPermissionsPage';
 import StaticPagesPage from './pages/StaticPagesPage';
+import CommentsModerationPage from './pages/CommentsModerationPage';
 import { createQuestion, fetchTodayQuestion } from './api/qotd';
 
 import { CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
@@ -220,17 +221,6 @@ export default function App() {
     }
   };
 
-  // Comments Handlers
-  const handleApproveComment = (id) => {
-    setComments(comments.map(c => c.id === id ? { ...c, status: 'Approved' } : c));
-    showToast('Reader comment approved and live!', 'success');
-  };
-
-  const handleDeleteComment = (id) => {
-    setComments(comments.filter(c => c.id !== id));
-    showToast('Comment deleted.', 'warning');
-  };
-
   // Settings Handler
   // (settings are saved by SettingsPage directly against the backend API)
 
@@ -336,6 +326,14 @@ export default function App() {
                 categories={categories}
                 onManageArticles={() => setActiveTab('news')}
               />
+            ) : (
+              <AccessRestricted />
+            )
+          )}
+
+          {activeTab === 'comments' && (
+            hasPermission(currentUser, 'comment:moderate') ? (
+              <CommentsModerationPage showToast={showToast} />
             ) : (
               <AccessRestricted />
             )
