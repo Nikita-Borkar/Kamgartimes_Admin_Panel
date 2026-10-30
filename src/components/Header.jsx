@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Menu, X, Bell, Search, PlusCircle, ExternalLink, 
-  User, LogOut, ShieldCheck, Clock, CheckCircle2, ChevronDown,
+import {
+  Menu, X, Search, PlusCircle, ExternalLink,
+  User, LogOut, ShieldCheck, Clock, ChevronDown,
   Sun, Moon
 } from 'lucide-react';
 import Logo from './Logo';
@@ -16,7 +16,6 @@ export default function Header({
   theme,
   toggleTheme
 }) {
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
@@ -31,12 +30,6 @@ export default function Header({
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const notifications = [
-    { id: 1, text: "Suresh Verma submitted a new article: Minimum Wage Hike 2026", time: "5 mins ago", unread: true },
-    { id: 2, text: "Mumbai Edition e-Paper published successfully", time: "1 hour ago", unread: true },
-    { id: 3, text: "3 new reader comments are pending approval", time: "2 hours ago", unread: false }
-  ];
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-lg transition-colors duration-300">
@@ -107,46 +100,6 @@ export default function Header({
             <span className="hidden sm:inline">+ Write Article</span>
             <span className="sm:hidden">+ Write</span>
           </button>
-
-          {/* Notifications Toggle */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 relative transition"
-              title="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-ping" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full" />
-            </button>
-
-            {/* Notifications Menu */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                  <span className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-red-500" /> Notifications
-                  </span>
-                  <span className="text-xs text-red-600 dark:text-red-400 bg-red-500/10 px-2 py-0.5 rounded font-medium">
-                    2 New
-                  </span>
-                </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
-                  {notifications.map(n => (
-                    <div key={n.id} className={`p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition cursor-pointer ${n.unread ? 'bg-slate-50/80 dark:bg-slate-800/30' : ''}`}>
-                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-snug">{n.text}</p>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 block">{n.time}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-2 text-center bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-                  <button onClick={() => setShowNotifications(false)} className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* User Profile Menu */}
           <div className="relative">
