@@ -186,6 +186,12 @@ export default function DashboardHome({
 
   const moduleCards = summary
     ? [
+        ...(summary.notifications ? [{
+          label: 'Push Subscriptions',
+          icon: BellRing,
+          value: `${formatNumber(summary.notifications.pushSubscriptions)} saved`,
+          hint: 'Browser/device subscriptions, not unique people',
+        }] : []),
         ...(canReadLiveNews ? [{
           label: 'Live News', icon: Radio,
           value: `${formatNumber(summary.liveNews.active)} active`,
