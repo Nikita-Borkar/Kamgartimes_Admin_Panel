@@ -11,6 +11,10 @@ export async function fetchSiteSetting() {
   return api.get('/site-setting');
 }
 
+export async function fetchPublicSiteSetting() {
+  return api.get('/public/site-setting', { auth: false });
+}
+
 export async function updateSiteSetting(payload) {
   // payload: { siteName?, tagline?, contactEmail?, contactPhone?, address?,
   //            isMaintenanceMode?, socialLinks? } — JSON only (no logo here)

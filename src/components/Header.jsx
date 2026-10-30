@@ -54,7 +54,7 @@ export default function Header({
           </button>
           
           <div className="block">
-            <Logo size="md" showTagline={true} />
+            <Logo size="md" showTagline={true} theme={theme} />
           </div>
         </div>
 

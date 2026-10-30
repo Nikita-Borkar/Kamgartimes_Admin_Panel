@@ -133,6 +133,7 @@ export default function SettingsPage({ user, showToast }) {
       }
 
       showToast('Site settings saved!', 'success');
+      window.dispatchEvent(new Event('site-settings-updated'));
       setSavedTick(true);
       setTimeout(() => setSavedTick(false), 3000);
     } catch (err) {
