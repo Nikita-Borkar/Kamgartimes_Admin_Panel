@@ -34,8 +34,12 @@ export default function SettingsPage({ user, showToast }) {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY_FORM);
   const [socialLinks, setSocialLinks] = useState([]);
-  const [logoUrl, setLogoUrl] = useState('');
-  const [logoFile, setLogoFile] = useState(null);
+  const [logoLightUrl, setLogoLightUrl] = useState('');
+  const [logoDarkUrl, setLogoDarkUrl] = useState('');
+  const [logoLightFile, setLogoLightFile] = useState(null);
+  const [logoDarkFile, setLogoDarkFile] = useState(null);
+  const [logoLightPreview, setLogoLightPreview] = useState('');
+  const [logoDarkPreview, setLogoDarkPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [savedTick, setSavedTick] = useState(false);
@@ -53,7 +57,8 @@ export default function SettingsPage({ user, showToast }) {
         isMaintenanceMode: !!s?.isMaintenanceMode
       });
       setSocialLinks((s?.socialLinks || []).map(l => ({ platform: l.platform, url: l.url })));
-      setLogoUrl(s?.logoUrl || '');
+      setLogoLightUrl(s?.logoLightUrl || s?.logoUrl || '');
+      setLogoDarkUrl(s?.logoDarkUrl || '');
     } catch (err) {
       setFormError(err?.message || 'Could not load site settings.');
     } finally {
@@ -66,6 +71,26 @@ export default function SettingsPage({ user, showToast }) {
     else setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canRead]);
+
+  useEffect(() => {
+    if (!logoLightFile) {
+      setLogoLightPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(logoLightFile);
+    setLogoLightPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [logoLightFile]);
+
+  useEffect(() => {
+    if (!logoDarkFile) {
+      setLogoDarkPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(logoDarkFile);
+    setLogoDarkPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [logoDarkFile]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -94,11 +119,17 @@ export default function SettingsPage({ user, showToast }) {
         socialLinks: socialLinks.map(l => ({ platform: l.platform.trim().toLowerCase(), url: l.url.trim(), icon: '' }))
       });
 
-      // Step 2: logo in its own multipart request (only the file can travel)
-      if (logoFile) {
-        const updated = await uploadSiteLogo(logoFile);
-        setLogoUrl(updated?.logoUrl || logoUrl);
-        setLogoFile(null);
+      // Upload each selected theme logo separately so either variant can be
+      // replaced without changing the other one.
+      if (logoLightFile) {
+        const updated = await uploadSiteLogo(logoLightFile, 'light');
+        setLogoLightUrl(updated?.logoLightUrl || updated?.logoUrl || logoLightUrl);
+        setLogoLightFile(null);
+      }
+      if (logoDarkFile) {
+        const updated = await uploadSiteLogo(logoDarkFile, 'dark');
+        setLogoDarkUrl(updated?.logoDarkUrl || logoDarkUrl);
+        setLogoDarkFile(null);
       }
 
       showToast('Site settings saved!', 'success');
@@ -176,13 +207,13 @@ export default function SettingsPage({ user, showToast }) {
           <ImageIcon className="w-4 h-4 text-amber-500" /> Logo &amp; Branding
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-1 space-y-2">
-            <label className="text-xs font-bold text-slate-300">Site Logo</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-300">Light Theme Logo</label>
             <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
               <div className="h-20 w-full rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
-                {(logoFile ? URL.createObjectURL(logoFile) : logoUrl) ? (
-                  <img src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} alt="site logo" className="max-h-full max-w-full object-contain" />
+                {(logoLightPreview || logoLightUrl) ? (
+                  <img src={logoLightPreview || logoLightUrl} alt="Light theme site logo preview" className="max-h-full max-w-full object-contain" />
                 ) : (
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No logo</span>
                 )}
@@ -191,11 +222,34 @@ export default function SettingsPage({ user, showToast }) {
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 disabled={!canUpdate}
-                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                onChange={(e) => setLogoLightFile(e.target.files?.[0] || null)}
                 className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5 disabled:opacity-50"
               />
               <p className="text-[10px] text-slate-500 text-center">
-                {logoFile ? 'Save settings to upload the new logo.' : 'Uploaded via Cloudinary. Saved with the main save.'}
+                {logoLightFile ? 'Save settings to upload this logo.' : 'Shown on light backgrounds.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-300">Dark Theme Logo</label>
+            <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
+              <div className="h-20 w-full rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden p-2">
+                {(logoDarkPreview || logoDarkUrl || logoLightUrl) ? (
+                  <img src={logoDarkPreview || logoDarkUrl || logoLightUrl} alt="Dark theme site logo preview" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No logo</span>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                disabled={!canUpdate}
+                onChange={(e) => setLogoDarkFile(e.target.files?.[0] || null)}
+                className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5 disabled:opacity-50"
+              />
+              <p className="text-[10px] text-slate-500 text-center">
+                {logoDarkFile ? 'Save settings to upload this logo.' : logoDarkUrl ? 'Shown on dark backgrounds.' : 'Uses the light logo until you upload one.'}
               </p>
             </div>
           </div>

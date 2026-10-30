@@ -17,12 +17,11 @@ export async function updateSiteSetting(payload) {
   return api.put('/site-setting', payload);
 }
 
-// Logo lives in its own multipart request (field name `image`). Multipart
-// bodies cannot carry the socialLinks/isMaintenanceMode fields (multer turns
-// them into strings and the backend schema rejects that), so this request
-// sends ONLY the file.
-export async function uploadSiteLogo(file) {
+// Theme-specific logo uploads use multipart because the file is streamed to
+// Cloudinary by the backend. Keep this request separate from JSON settings.
+export async function uploadSiteLogo(file, variant) {
   const fd = new FormData();
+  fd.append('logoVariant', variant);
   fd.append('image', file);
   return api.put('/site-setting', fd);
 }
