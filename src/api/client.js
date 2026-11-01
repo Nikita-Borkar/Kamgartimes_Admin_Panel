@@ -25,7 +25,7 @@ function getApiBaseUrl() {
     return `http://${currentHost}:5000/api/v1`;
   }
 
-  return (envUrl || 'http://localhost:5000/api/v1').replace(/\/$/, '');
+  return (envUrl || 'https://kamgartimes-news-new-backend-1.onrender.com/api/v1').replace(/\/$/, '');
 }
 
 const BASE_URL = getApiBaseUrl();

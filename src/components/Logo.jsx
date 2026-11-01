@@ -14,6 +14,8 @@ export default function Logo({ size = 'md', showTagline = true, theme = 'dark' }
           setSiteLogos({
             light: settings?.logoLightUrl || settings?.logoUrl || '',
             dark: settings?.logoDarkUrl || settings?.logoUrl || settings?.logoLightUrl || '',
+            textLight: settings?.textLogoLightUrl || '',
+            textDark: settings?.textLogoDarkUrl || settings?.textLogoLightUrl || '',
           });
         }
       } catch {
@@ -36,13 +38,23 @@ export default function Logo({ size = 'md', showTagline = true, theme = 'dark' }
   };
   const logoSrc = (theme === 'dark' ? siteLogos?.dark : siteLogos?.light) || kamgarLogo;
 
+  const emblemSrc = (theme === 'dark' ? siteLogos?.dark : siteLogos?.light) || kamgarLogo;
+  const textSrc = theme === 'dark' ? siteLogos?.textDark : siteLogos?.textLight;
+
   return (
     <div className="flex items-center gap-2 select-none group">
       <img 
-        src={logoSrc}
+        src={emblemSrc}
         alt="Kamgar Times Logo" 
         className={`${imageHeights[size]} w-auto max-w-[min(48vw,15rem)] object-contain group-hover:scale-105 transition-transform duration-300`}
       />
+      {textSrc ? (
+        <img 
+          src={textSrc}
+          alt="Kamgar Times"
+          className={`${imageHeights[size]} w-auto max-w-[min(48vw,15rem)] object-contain group-hover:scale-105 transition-transform duration-300`}
+        />
+      ) : null}
     </div>
   );
 }

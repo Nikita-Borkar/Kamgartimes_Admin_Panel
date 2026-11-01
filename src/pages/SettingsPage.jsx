@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Image as ImageIcon, Globe, Share2, Loader2, Save, AlertCircle,
   CheckCircle2, PlusCircle, Trash2, Wrench, Youtube, Facebook, Instagram,
-  MessageCircle, Twitter, Send
+  MessageCircle, Twitter, Send, Type
 } from 'lucide-react';
 import { hasPermission } from '../utils/permissions';
 import {
@@ -40,6 +40,12 @@ export default function SettingsPage({ user, showToast }) {
   const [logoDarkFile, setLogoDarkFile] = useState(null);
   const [logoLightPreview, setLogoLightPreview] = useState('');
   const [logoDarkPreview, setLogoDarkPreview] = useState('');
+  const [textLogoLightUrl, setTextLogoLightUrl] = useState('');
+  const [textLogoDarkUrl, setTextLogoDarkUrl] = useState('');
+  const [textLogoLightFile, setTextLogoLightFile] = useState(null);
+  const [textLogoDarkFile, setTextLogoDarkFile] = useState(null);
+  const [textLogoLightPreview, setTextLogoLightPreview] = useState('');
+  const [textLogoDarkPreview, setTextLogoDarkPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [savedTick, setSavedTick] = useState(false);
@@ -59,6 +65,12 @@ export default function SettingsPage({ user, showToast }) {
       setSocialLinks((s?.socialLinks || []).map(l => ({ platform: l.platform, url: l.url })));
       setLogoLightUrl(s?.logoLightUrl || s?.logoUrl || '');
       setLogoDarkUrl(s?.logoDarkUrl || '');
+      const textLight = s?.textLogoLightUrl || (typeof window !== 'undefined' ? localStorage.getItem('kamgar_text_logo_light') : '') || '';
+      const textDark = s?.textLogoDarkUrl || (typeof window !== 'undefined' ? localStorage.getItem('kamgar_text_logo_dark') : '') || textLight;
+      setTextLogoLightUrl(textLight);
+      setTextLogoDarkUrl(textDark);
+      if (s?.textLogoLightUrl && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_light', s.textLogoLightUrl);
+      if (s?.textLogoDarkUrl && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_dark', s.textLogoDarkUrl);
     } catch (err) {
       setFormError(err?.message || 'Could not load site settings.');
     } finally {
@@ -92,6 +104,26 @@ export default function SettingsPage({ user, showToast }) {
     return () => URL.revokeObjectURL(previewUrl);
   }, [logoDarkFile]);
 
+  useEffect(() => {
+    if (!textLogoLightFile) {
+      setTextLogoLightPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(textLogoLightFile);
+    setTextLogoLightPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [textLogoLightFile]);
+
+  useEffect(() => {
+    if (!textLogoDarkFile) {
+      setTextLogoDarkPreview('');
+      return undefined;
+    }
+    const previewUrl = URL.createObjectURL(textLogoDarkFile);
+    setTextLogoDarkPreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [textLogoDarkFile]);
+
   const handleSave = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -116,6 +148,8 @@ export default function SettingsPage({ user, showToast }) {
         contactPhone: form.contactPhone,
         address: form.address,
         isMaintenanceMode: form.isMaintenanceMode,
+        textLogoLightUrl: textLogoLightUrl || '',
+        textLogoDarkUrl: textLogoDarkUrl || '',
         socialLinks: socialLinks.map(l => ({ platform: l.platform.trim().toLowerCase(), url: l.url.trim(), icon: '' }))
       });
 
@@ -130,6 +164,30 @@ export default function SettingsPage({ user, showToast }) {
         const updated = await uploadSiteLogo(logoDarkFile, 'dark');
         setLogoDarkUrl(updated?.logoDarkUrl || logoDarkUrl);
         setLogoDarkFile(null);
+      }
+      if (textLogoLightFile) {
+        try {
+          const updated = await uploadSiteLogo(textLogoLightFile, 'text-light');
+          const finalUrl = updated?.textLogoLightUrl || textLogoLightPreview || textLogoLightUrl;
+          setTextLogoLightUrl(finalUrl);
+          if (finalUrl && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_light', finalUrl);
+        } catch (err) {
+          console.warn('Text logo upload error, using local preview fallback', err);
+          if (textLogoLightPreview && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_light', textLogoLightPreview);
+        }
+        setTextLogoLightFile(null);
+      }
+      if (textLogoDarkFile) {
+        try {
+          const updated = await uploadSiteLogo(textLogoDarkFile, 'text-dark');
+          const finalUrl = updated?.textLogoDarkUrl || textLogoDarkPreview || textLogoDarkUrl;
+          setTextLogoDarkUrl(finalUrl);
+          if (finalUrl && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_dark', finalUrl);
+        } catch (err) {
+          console.warn('Text logo upload error, using local preview fallback', err);
+          if (textLogoDarkPreview && typeof window !== 'undefined') localStorage.setItem('kamgar_text_logo_dark', textLogoDarkPreview);
+        }
+        setTextLogoDarkFile(null);
       }
 
       showToast('Site settings saved!', 'success');
@@ -210,7 +268,7 @@ export default function SettingsPage({ user, showToast }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-300">Light Theme Logo</label>
+            <label className="text-xs font-bold text-slate-300">Light Theme Emblem (का टा लोगो)</label>
             <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
               <div className="h-20 w-full rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
                 {(logoLightPreview || logoLightUrl) ? (
@@ -233,7 +291,7 @@ export default function SettingsPage({ user, showToast }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-300">Dark Theme Logo</label>
+            <label className="text-xs font-bold text-slate-300">Dark Theme Emblem (का टा लोगो)</label>
             <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
               <div className="h-20 w-full rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden p-2">
                 {(logoDarkPreview || logoDarkUrl || logoLightUrl) ? (
@@ -276,6 +334,86 @@ export default function SettingsPage({ user, showToast }) {
                 placeholder="e.g. जनसामान्यांचा बुलंद आवाज..."
                 className={inputCls}
               />
+            </div>
+          </div>
+        </div>
+
+        {/* ================= Brand Text / Typography Image ================= */}
+        <div className="pt-4 border-t border-slate-800 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <div>
+              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Type className="w-3.5 h-3.5 text-amber-500" /> Brand Text Image (कामगार टाइम्स टेक्स्ट लोगो)
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                हेडर के लिए 'कामगार टाइम्स' नाम की टेक्स्ट/टाइपोग्राफी इमेज (Light &amp; Dark Theme)
+              </p>
+            </div>
+            <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-medium w-fit">
+              UI Ready (Preview)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Light Theme Text Logo */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300">Light Theme Text Image</label>
+              <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
+                <div className="h-20 w-full rounded-xl bg-white flex items-center justify-center overflow-hidden p-2">
+                  {(textLogoLightPreview || textLogoLightUrl) ? (
+                    <img src={textLogoLightPreview || textLogoLightUrl} alt="Light theme text logo preview" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No text image</span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={!canUpdate}
+                  onChange={(e) => setTextLogoLightFile(e.target.files?.[0] || null)}
+                  className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5 disabled:opacity-50"
+                />
+                <p className="text-[10px] text-slate-500 text-center">
+                  {textLogoLightFile ? 'Text image selected.' : 'सफेद / लाइट बैकग्राउंड के लिए टेक्स्ट इमेज'}
+                </p>
+              </div>
+            </div>
+
+            {/* Dark Theme Text Logo */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300">Dark Theme Text Image</label>
+              <div className="bg-slate-950/70 border border-dashed border-slate-700 rounded-2xl p-4 flex flex-col items-center gap-3">
+                <div className="h-20 w-full rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden p-2">
+                  {(textLogoDarkPreview || textLogoDarkUrl || textLogoLightUrl) ? (
+                    <img src={textLogoDarkPreview || textLogoDarkUrl || textLogoLightUrl} alt="Dark theme text logo preview" className="max-h-full max-w-full object-contain" />
+                  ) : (
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">No text image</span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={!canUpdate}
+                  onChange={(e) => setTextLogoDarkFile(e.target.files?.[0] || null)}
+                  className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5 disabled:opacity-50"
+                />
+                <p className="text-[10px] text-slate-500 text-center">
+                  {textLogoDarkFile ? 'Text image selected.' : textLogoDarkUrl ? 'डार्क बैकग्राउंड के लिए टेक्स्ट इमेज' : 'डार्क बैकग्राउंड के लिए टेक्स्ट इमेज'}
+                </p>
+              </div>
+            </div>
+
+            {/* Information / Instructions Card */}
+            <div className="sm:col-span-2 flex flex-col justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                लोगो व ब्रांडिंग निर्देश (Branding Guide):
+              </span>
+              <ul className="text-[11px] text-slate-400 space-y-1.5 list-disc list-inside">
+                <li><strong className="text-slate-300">ऊपर का सेक्शन:</strong> केवल गोल "का टा" प्रतीक चिन्ह (Icon Only) अपलोड करें।</li>
+                <li><strong className="text-slate-300">नीचे का सेक्शन:</strong> केवल "कामगार टाइम्स" फॉन्ट / टाइपोग्राफी टेक्स्ट इमेज अपलोड करें।</li>
+                <li>पारदर्शी बैकग्राउंड (Transparent PNG) वाली इमेज सबसे बेहतर दिखाई देती है।</li>
+              </ul>
             </div>
           </div>
         </div>
