@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   Megaphone, PlusCircle, Edit3, Trash2, X, AlertCircle, Loader2,
   CheckCircle2, RotateCcw, MousePointer, LayoutTemplate, Target,
-  BarChart3, RefreshCw, Image as ImageIcon, CalendarDays, Search
+  BarChart3, RefreshCw, Image as ImageIcon, CalendarDays, Search,
+  Video, Play, Film
 } from 'lucide-react';
 import Pagination from '../components/Pagination';
 import { hasPermission } from '../utils/permissions';
@@ -70,7 +71,8 @@ const TABS = [
 
 const EMPTY_CAMP_FORM = {
   title: '', clickUrl: '', imageAlt: '', target: '_blank',
-  priority: '0', startDate: '', endDate: '', isActive: true
+  priority: '0', startDate: '', endDate: '', isActive: true,
+  mediaType: 'IMAGE', videoUrl: ''
 };
 const EMPTY_PLACEMENT_FORM = { adSlot: '', adCampaign: '', weight: '1', startDate: '', endDate: '', isActive: true };
 
@@ -255,16 +257,33 @@ export default function AdManagementPage({ user, showToast }) {
   const handleCreateCampaign = async (e) => {
     e.preventDefault();
     setCampFormError('');
-    if (!campForm.title.trim() || !campForm.clickUrl.trim() || !campFile) {
-      setCampFormError('Title, click URL and the creative image are required.');
+    if (!campForm.title.trim() || !campForm.clickUrl.trim()) {
+      setCampFormError('Title and click URL are required.');
       return;
     }
+
+    if (campForm.mediaType === 'IMAGE' && !campFile) {
+      setCampFormError('Please choose an image file for the ad creative.');
+      return;
+    }
+
+    if (campForm.mediaType === 'VIDEO' && !campFile && !campForm.videoUrl.trim()) {
+      setCampFormError('Please upload a video file or provide a direct video URL.');
+      return;
+    }
+
     setCampCreating(true);
     try {
       const fd = new FormData();
       fd.append('title', campForm.title.trim());
       fd.append('clickUrl', campForm.clickUrl.trim());
-      fd.append('image', campFile);
+      fd.append('mediaType', campForm.mediaType || 'IMAGE');
+      if (campFile) {
+        fd.append('image', campFile);
+      }
+      if (campForm.videoUrl.trim()) {
+        fd.append('videoUrl', campForm.videoUrl.trim());
+      }
       fd.append('imageAlt', campForm.imageAlt.trim());
       fd.append('target', campForm.target);
       fd.append('priority', campForm.priority || '0');
@@ -285,10 +304,13 @@ export default function AdManagementPage({ user, showToast }) {
   };
 
   const openCampaignEdit = (c) => {
+    const isVideo = c.mediaType === 'VIDEO' || Boolean(c.videoUrl);
     setCampEdit({
       id: c._id,
       title: c.title,
       currentImage: c.imageUrl,
+      currentVideo: c.videoUrl,
+      currentMediaType: isVideo ? 'VIDEO' : 'IMAGE',
       file: null,
       error: '',
       saving: false,
@@ -296,6 +318,8 @@ export default function AdManagementPage({ user, showToast }) {
         title: c.title || '',
         clickUrl: c.clickUrl || '',
         imageAlt: c.imageAlt || '',
+        mediaType: isVideo ? 'VIDEO' : 'IMAGE',
+        videoUrl: c.videoUrl || '',
         target: c.target || '_blank',
         priority: String(c.priority ?? 0),
         startDate: c.startDate ? c.startDate.slice(0, 10) : '',
@@ -313,6 +337,8 @@ export default function AdManagementPage({ user, showToast }) {
       fd.append('title', form.title.trim());
       fd.append('clickUrl', form.clickUrl.trim());
       fd.append('imageAlt', form.imageAlt.trim());
+      fd.append('mediaType', form.mediaType || 'IMAGE');
+      if (form.videoUrl !== undefined) fd.append('videoUrl', form.videoUrl.trim());
       fd.append('target', form.target);
       fd.append('priority', form.priority || '0');
       fd.append('isActive', String(form.isActive));
@@ -596,9 +622,42 @@ export default function AdManagementPage({ user, showToast }) {
         <>
           {canCreate && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <PlusCircle className="w-4 h-4 text-amber-500" /> Upload New Ad Creative
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <PlusCircle className="w-4 h-4 text-amber-500" /> Upload New Ad Creative
+                </h3>
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCampForm(f => ({ ...f, mediaType: 'IMAGE' }));
+                      setCampFile(null);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                      campForm.mediaType !== 'VIDEO'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Image Ad
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCampForm(f => ({ ...f, mediaType: 'VIDEO' }));
+                      setCampFile(null);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                      campForm.mediaType === 'VIDEO'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Film className="w-3.5 h-3.5" /> Video Ad
+                  </button>
+                </div>
+              </div>
+
               {campFormError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-2.5 text-xs text-red-400">
                   <AlertCircle className="w-4 h-4 shrink-0" /><span>{campFormError}</span>
@@ -624,19 +683,41 @@ export default function AdManagementPage({ user, showToast }) {
                   />
                   <p className="text-[10px] text-slate-500">Absolute http(s) URL or a reader-site path starting with /</p>
                 </div>
-                <div className="sm:col-span-3 space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Creative Image* (PNG/JPG/WebP)</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file" accept="image/png,image/jpeg,image/webp"
-                      onChange={(e) => setCampFile(e.target.files?.[0] || null)}
-                      className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
-                    />
-                    {campFile && (
-                      <img src={URL.createObjectURL(campFile)} alt="preview" className="w-10 h-10 object-cover rounded-lg border border-slate-700 shrink-0" />
-                    )}
+
+                {campForm.mediaType === 'VIDEO' ? (
+                  <>
+                    <div className="sm:col-span-3 space-y-1">
+                      <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <Video className="w-3.5 h-3.5 text-red-400" /> Video File (MP4/WebM)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                          onChange={(e) => setCampFile(e.target.files?.[0] || null)}
+                          className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
+                        />
+                        {campFile && (
+                          <video src={URL.createObjectURL(campFile)} controls className="w-12 h-10 object-cover rounded-lg border border-slate-700 bg-black shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="sm:col-span-3 space-y-1">
+                    <label className="text-xs font-bold text-slate-300">Creative Image* (PNG/JPG/WebP/GIF)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(e) => setCampFile(e.target.files?.[0] || null)}
+                        className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
+                      />
+                      {campFile && (
+                        <img src={URL.createObjectURL(campFile)} alt="preview" className="w-10 h-10 object-cover rounded-lg border border-slate-700 shrink-0" />
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
                 <div className="sm:col-span-1">
                   <button
                     type="submit" disabled={campCreating}
@@ -646,6 +727,27 @@ export default function AdManagementPage({ user, showToast }) {
                     Upload
                   </button>
                 </div>
+
+                {campForm.mediaType === 'VIDEO' && (
+                  <div className="sm:col-span-12 pt-1">
+                    <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Film className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-bold text-slate-300">Or Direct Video URL:</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={campForm.videoUrl || ''}
+                        onChange={(e) => setCampForm(f => ({ ...f, videoUrl: e.target.value }))}
+                        placeholder="https://res.cloudinary.com/... or direct mp4/webm stream URL"
+                        className="w-full bg-slate-900 border border-slate-700 focus:border-red-500 rounded-xl px-3 py-1.5 text-xs font-mono text-white outline-none"
+                      />
+                      {campForm.videoUrl && !campFile && (
+                        <video src={campForm.videoUrl} controls className="w-16 h-10 object-cover rounded-lg border border-slate-700 bg-black shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                )}
               </form>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 border-t border-slate-800/70">
                 <div className="space-y-1">
@@ -727,7 +829,7 @@ export default function AdManagementPage({ user, showToast }) {
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold tracking-wider">
                     <tr>
-                      <th className="p-3 rounded-l-xl w-14">Img</th>
+                      <th className="p-3 rounded-l-xl w-14">Media</th>
                       <th className="p-3">Title</th>
                       <th className="p-3">Click URL</th>
                       <th className="p-3">Priority</th>
@@ -739,12 +841,39 @@ export default function AdManagementPage({ user, showToast }) {
                   <tbody className="divide-y divide-slate-800/70">
                     {campaigns.map(c => {
                       const status = campaignStatus(c);
+                      const isVideo = c.mediaType === 'VIDEO' || Boolean(c.videoUrl);
                       return (
                         <tr key={c._id} className={`hover:bg-slate-800/30 transition ${status.label === 'Active' ? '' : 'opacity-70'}`}>
                           <td className="p-3">
-                            <img src={c.imageUrl} alt={c.imageAlt || c.title} className="w-12 h-9 object-cover rounded-lg border border-slate-800 bg-slate-950" />
+                            <div className="relative w-12 h-9 rounded-lg overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+                              {isVideo ? (
+                                <>
+                                  {c.videoUrl ? (
+                                    <video src={c.videoUrl} className="w-full h-full object-cover" muted />
+                                  ) : (
+                                    <img src={c.imageUrl} alt={c.title} className="w-full h-full object-cover" />
+                                  )}
+                                  <span className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                                    <Play className="w-3 h-3 text-amber-400 fill-amber-400" />
+                                  </span>
+                                </>
+                              ) : (
+                                <img src={c.imageUrl} alt={c.imageAlt || c.title} className="w-full h-full object-cover" />
+                              )}
+                            </div>
                           </td>
-                          <td className="p-3 font-bold text-white max-w-[240px] truncate" title={c.title}>{c.title}</td>
+                          <td className="p-3 font-bold text-white max-w-[240px]">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wide uppercase shrink-0 ${
+                                isVideo
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {isVideo ? 'VIDEO' : 'IMAGE'}
+                              </span>
+                              <span className="truncate" title={c.title}>{c.title}</span>
+                            </div>
+                          </td>
                           <td className="p-3 font-mono text-amber-400/90 max-w-[180px] truncate" title={c.clickUrl}>{c.clickUrl}</td>
                           <td className="p-3 text-slate-400">{c.priority}</td>
                           <td className="p-3 text-slate-400 whitespace-nowrap">
@@ -1203,9 +1332,9 @@ export default function AdManagementPage({ user, showToast }) {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">Max Ads</label>
+                <label className="text-xs font-bold text-slate-300">Max Ads (Slider / Rotation Capacity)</label>
                 <input
-                  type="number" min={1} max={10} value={slotEdit.form.maxAds}
+                  type="number" min={1} max={20} value={slotEdit.form.maxAds}
                   onChange={(e) => setSlotEdit(s => ({ ...s, form: { ...s.form, maxAds: e.target.value } }))}
                   className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-white outline-none"
                 />
@@ -1272,22 +1401,81 @@ export default function AdManagementPage({ user, showToast }) {
                   className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs text-white outline-none"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">Replace Image (optional)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file" accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => setCampEdit(s => ({ ...s, file: e.target.files?.[0] || null }))}
-                    className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
-                  />
-                  <img
-                    src={campEdit.file ? URL.createObjectURL(campEdit.file) : campEdit.currentImage}
-                    alt=""
-                    className="w-14 h-10 object-cover rounded-lg border border-slate-700 shrink-0"
-                  />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300">Creative Media Type:</span>
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setCampEdit(s => ({ ...s, form: { ...s.form, mediaType: 'IMAGE' } }))}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                      campEdit.form.mediaType !== 'VIDEO'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" /> Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCampEdit(s => ({ ...s, form: { ...s.form, mediaType: 'VIDEO' } }))}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                      campEdit.form.mediaType === 'VIDEO'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Film className="w-3.5 h-3.5" /> Video
+                  </button>
                 </div>
-                <p className="text-[10px] text-slate-500">Leave empty to keep the current creative.</p>
               </div>
+
+              {campEdit.form.mediaType === 'VIDEO' ? (
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300">Replace Video File (optional)</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                        onChange={(e) => setCampEdit(s => ({ ...s, file: e.target.files?.[0] || null }))}
+                        className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
+                      />
+                      {campEdit.file ? (
+                        <video src={URL.createObjectURL(campEdit.file)} controls className="w-16 h-10 object-cover rounded-lg border border-slate-700 bg-black shrink-0" />
+                      ) : campEdit.currentVideo ? (
+                        <video src={campEdit.currentVideo} controls className="w-16 h-10 object-cover rounded-lg border border-slate-700 bg-black shrink-0" />
+                      ) : campEdit.currentImage ? (
+                        <img src={campEdit.currentImage} alt="" className="w-14 h-10 object-cover rounded-lg border border-slate-700 shrink-0" />
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-300">Or Direct Video URL</label>
+                    <input
+                      type="text" value={campEdit.form.videoUrl || ''}
+                      onChange={(e) => setCampEdit(s => ({ ...s, form: { ...s.form, videoUrl: e.target.value } }))}
+                      placeholder="https://...mp4"
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-xl px-4 py-2 text-xs font-mono text-white outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-300">Replace Image (optional)</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={(e) => setCampEdit(s => ({ ...s, file: e.target.files?.[0] || null }))}
+                      className="w-full text-[10px] text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-600 file:text-white file:text-[10px] file:font-bold hover:file:bg-red-500 cursor-pointer bg-slate-950 border border-slate-700 rounded-xl p-1.5"
+                    />
+                    <img
+                      src={campEdit.file ? URL.createObjectURL(campEdit.file) : campEdit.currentImage}
+                      alt=""
+                      className="w-14 h-10 object-cover rounded-lg border border-slate-700 shrink-0"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500">Leave empty to keep the current creative.</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400">Opens In</label>
